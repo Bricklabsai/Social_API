@@ -5,7 +5,7 @@ import {
   FaFacebook, FaTwitter, FaLinkedin, FaYoutube, FaInstagram, FaWhatsapp,
   FaCheckCircle, FaSpinner, FaExclamationTriangle, FaPlug, FaUnlink, FaTrash
 } from 'react-icons/fa';
-import { FiSend, FiImage, FiVideo } from 'react-icons/fi';
+import { FiSend, FiImage, FiVideo, FiLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const platformIcons = {
@@ -65,14 +65,12 @@ const Dashboard = () => {
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
       
-      // Open OAuth popup
       const authWindow = window.open(
         `http://localhost:8000/api/v1/auth/${platform}/connect?user_id=${userId}`,
         `${platform}_auth`,
         `width=${width},height=${height},left=${left},top=${top}`
       );
       
-      // Poll for window close
       const checkInterval = setInterval(() => {
         if (authWindow.closed) {
           clearInterval(checkInterval);
@@ -99,6 +97,8 @@ const Dashboard = () => {
       await platforms.disconnect(platform);
       toast.success(`Successfully disconnected from ${platform}`);
       await fetchConnections();
+      // Remove from selected platforms if it was selected
+      setSelectedPlatforms(prev => prev.filter(p => p !== platform));
     } catch (error) {
       console.error('Disconnect error:', error);
       toast.error(error.response?.data?.detail || `Failed to disconnect ${platform}`);
@@ -131,9 +131,17 @@ const Dashboard = () => {
         platforms: selectedPlatforms,
         content: postContent,
       };
-      if (mediaUrl) {
-        payload.media_url = mediaUrl;
-        payload.media_type = mediaType;
+      
+      // Only add media_url and media_type if they are provided
+      if (mediaUrl && mediaUrl.trim()) {
+        payload.media_url = mediaUrl.trim();
+        if (mediaType) {
+          payload.media_type = mediaType;
+        } else {
+          toast.error('Please select media type (Image or Video) when providing a media URL');
+          setPublishing(false);
+          return;
+        }
       }
 
       const response = await posts.publish(payload);
@@ -142,6 +150,7 @@ const Dashboard = () => {
       
       if (successCount === totalCount) {
         toast.success(`✅ Successfully posted to all ${totalCount} platforms!`);
+        // Clear form on success
         setPostContent('');
         setMediaUrl('');
         setMediaType('');
@@ -154,6 +163,7 @@ const Dashboard = () => {
       
       fetchConnections();
     } catch (error) {
+      console.error('Publish error:', error);
       toast.error(error.response?.data?.detail || 'Failed to publish');
     } finally {
       setPublishing(false);
@@ -170,6 +180,8 @@ const Dashboard = () => {
     youtube: 'YouTube',
     whatsapp: 'WhatsApp',
   };
+
+  const hasAnyConnection = Object.values(platformConnections).some(p => p?.connected);
 
   return (
     <Layout>
@@ -244,7 +256,7 @@ const Dashboard = () => {
         </div>
 
         {/* Publish Card - Only show if any platform is connected */}
-        {Object.values(platformConnections).some(p => p?.connected) && (
+        {hasAnyConnection && (
           <div className="bg-gray-800 rounded-xl p-6">
             <h2 className="text-xl font-bold text-white mb-4">Create Post</h2>
             
@@ -284,6 +296,9 @@ const Dashboard = () => {
             <div className="mb-4">
               <label className="block text-gray-300 font-medium mb-2">
                 {isThreadMode ? 'Thread Tweets (one per line)' : 'Content'}
+                {!isThreadMode && selectedPlatforms.includes('twitter') && (
+                  <span className="text-xs text-gray-400 ml-2">(Twitter limit: 280 chars)</span>
+                )}
               </label>
               <textarea
                 value={postContent}
@@ -292,19 +307,101 @@ const Dashboard = () => {
                 rows={isThreadMode ? 6 : 4}
                 placeholder={isThreadMode ? 'Tweet 1\nTweet 2\nTweet 3' : "What's on your mind?"}
               />
+              {!isThreadMode && selectedPlatforms.includes('twitter') && (
+                <div className={`text-right text-xs mt-1 ${postContent.length > 280 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {postContent.length}/280 characters
+                </div>
+              )}
+              {!isThreadMode && selectedPlatforms.includes('instagram') && (
+                <div className={`text-right text-xs mt-1 ${postContent.length > 2200 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {postContent.length}/2200 characters (Instagram limit)
+                </div>
+              )}
             </div>
+            
+            {/* Media URL Field */}
+            <div className="mb-4">
+              <label className="block text-gray-300 font-medium mb-2">
+                <div className="flex items-center gap-2">
+                  <FiLink size={16} />
+                  Media URL (Optional)
+                </div>
+              </label>
+              <input
+                type="url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                For YouTube: Provide a video URL. For Instagram/Facebook: Provide an image or video URL.
+              </p>
+            </div>
+            
+            {/* Media Type Selection (visible only when media URL is provided) */}
+            {mediaUrl && mediaUrl.trim() && (
+              <div className="mb-4">
+                <label className="block text-gray-300 font-medium mb-2">Media Type</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMediaType('image')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                      mediaType === 'image' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    <FiImage size={16} />
+                    Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaType('video')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                      mediaType === 'video' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    <FiVideo size={16} />
+                    Video
+                  </button>
+                </div>
+                {!mediaType && (
+                  <p className="text-xs text-yellow-500 mt-2">Please select Image or Video</p>
+                )}
+              </div>
+            )}
             
             {/* Action Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={handlePublish}
-                disabled={publishing || selectedPlatforms.length === 0 || !postContent.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 flex items-center gap-2"
+                disabled={publishing || selectedPlatforms.length === 0 || !postContent.trim() || (mediaUrl && !mediaType)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {publishing ? <FaSpinner className="animate-spin" /> : <FiSend />}
                 {isThreadMode ? 'Post Thread' : 'Publish'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* No Connections Message */}
+        {!hasAnyConnection && !loading && (
+          <div className="bg-gray-800 rounded-xl p-8 text-center">
+            <div className="text-gray-400 mb-3">
+              <FaPlug size={48} className="mx-auto opacity-50" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No Platforms Connected</h3>
+            <p className="text-gray-400 mb-4">
+              Connect your social media accounts to start posting
+            </p>
+            <p className="text-sm text-gray-500">
+              Click "Connect" on any platform above to get started
+            </p>
           </div>
         )}
 
