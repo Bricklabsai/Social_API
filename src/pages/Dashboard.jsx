@@ -3,9 +3,9 @@ import Layout from '../components/Layout';
 import { platforms, posts } from '../services/api';
 import { 
   FaFacebook, FaTwitter, FaLinkedin, FaYoutube, FaInstagram, FaWhatsapp,
-  FaCheckCircle, FaSpinner, FaExclamationTriangle, FaPlug, FaUnlink, FaTrash
+  FaCheckCircle, FaSpinner, FaPlug, FaUnlink, FaUpload
 } from 'react-icons/fa';
-import { FiSend, FiImage, FiVideo, FiLink } from 'react-icons/fi';
+import { FiSend, FiImage, FiVideo, FiFile } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const platformIcons = {
@@ -20,11 +20,10 @@ const platformIcons = {
 const Dashboard = () => {
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
-  const [publishing, setPublishing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaType, setMediaType] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(null);
 
   useEffect(() => {
@@ -35,10 +34,19 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const response = await platforms.getConnections();
+      
       const connectionsObj = {};
-      response.data.platforms.forEach(p => {
-        connectionsObj[p.platform] = p;
-      });
+      
+      if (response.data && response.data.platforms) {
+        response.data.platforms.forEach(p => {
+          connectionsObj[p.platform] = p;
+        });
+      } else if (response.data && typeof response.data === 'object') {
+        Object.keys(response.data).forEach(platform => {
+          connectionsObj[platform] = response.data[platform];
+        });
+      }
+      
       setPlatformConnections(connectionsObj);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
@@ -97,8 +105,8 @@ const Dashboard = () => {
       await platforms.disconnect(platform);
       toast.success(`Successfully disconnected from ${platform}`);
       await fetchConnections();
-      // Remove from selected platforms if it was selected
       setSelectedPlatforms(prev => prev.filter(p => p !== platform));
+      setSelectedFile(null);
     } catch (error) {
       console.error('Disconnect error:', error);
       toast.error(error.response?.data?.detail || `Failed to disconnect ${platform}`);
@@ -113,9 +121,53 @@ const Dashboard = () => {
         ? prev.filter(p => p !== platform)
         : [...prev, platform]
     );
+    setSelectedFile(null);
   };
 
-  const handlePublish = async () => {
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validVideoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    let isValid = false;
+    let errorMessage = '';
+
+    if (selectedPlatforms.includes('youtube')) {
+      if (validVideoTypes.includes(file.type)) {
+        isValid = true;
+      } else {
+        errorMessage = 'YouTube requires a video file (MP4, MOV, AVI, MKV, WEBM)';
+      }
+    } else if (selectedPlatforms.includes('instagram') || selectedPlatforms.includes('facebook')) {
+      if (validImageTypes.includes(file.type)) {
+        isValid = true;
+      } else {
+        errorMessage = 'Instagram/Facebook require an image file (JPEG, PNG, GIF, WEBP)';
+      }
+    } else {
+      errorMessage = 'Please select a platform that supports file uploads (YouTube, Facebook, Instagram)';
+    }
+
+    if (!isValid) {
+      toast.error(errorMessage);
+      e.target.value = '';
+      return;
+    }
+
+    const maxSize = 128 * 1024 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`File too large. Maximum size is 128GB. Your file: ${(file.size / (1024**3)).toFixed(2)}GB`);
+      e.target.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    toast.success(`File selected: ${file.name} (${(file.size / (1024**2)).toFixed(2)} MB)`);
+  };
+
+  const handleFileUpload = async () => {
     if (!postContent.trim()) {
       toast.error('Please enter content to post');
       return;
@@ -124,49 +176,48 @@ const Dashboard = () => {
       toast.error('Please select at least one platform');
       return;
     }
+    if (!selectedFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
 
-    setPublishing(true);
+    setUploading(true);
     try {
-      const payload = {
-        platforms: selectedPlatforms,
-        content: postContent,
-      };
+      const formData = new FormData();
+      formData.append('platforms', JSON.stringify(selectedPlatforms));
+      formData.append('content', postContent);
       
-      // Only add media_url and media_type if they are provided
-      if (mediaUrl && mediaUrl.trim()) {
-        payload.media_url = mediaUrl.trim();
-        if (mediaType) {
-          payload.media_type = mediaType;
-        } else {
-          toast.error('Please select media type (Image or Video) when providing a media URL');
-          setPublishing(false);
-          return;
-        }
-      }
+      const isVideo = selectedFile.type.startsWith('video/');
+      formData.append('media_type', isVideo ? 'video' : 'image');
+      formData.append('file', selectedFile);
 
-      const response = await posts.publish(payload);
+      const response = await posts.uploadFile(formData);
       const successCount = response.data.successful;
       const totalCount = response.data.total_platforms;
       
       if (successCount === totalCount) {
-        toast.success(`✅ Successfully posted to all ${totalCount} platforms!`);
+        toast.success(`Successfully uploaded to ${totalCount} platform${totalCount > 1 ? 's' : ''}!`);
         // Clear form on success
         setPostContent('');
-        setMediaUrl('');
-        setMediaType('');
         setSelectedPlatforms([]);
+        setSelectedFile(null);
+        // Reset file input
+        const fileInput = document.getElementById('file-upload');
+        if (fileInput) fileInput.value = '';
       } else if (successCount > 0) {
-        toast.warning(`⚠️ Posted to ${successCount}/${totalCount} platforms. Check details for failures.`);
+        toast.success(`Partially successful: ${successCount}/${totalCount} platforms`);
       } else {
-        toast.error('❌ Failed to post. Check your platform connections.');
+        toast.error('Upload failed. Check your platform connections.');
       }
       
+      // Refresh connections
       fetchConnections();
+      
     } catch (error) {
-      console.error('Publish error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to publish');
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.detail || 'Upload failed');
     } finally {
-      setPublishing(false);
+      setUploading(false);
     }
   };
 
@@ -182,6 +233,7 @@ const Dashboard = () => {
   };
 
   const hasAnyConnection = Object.values(platformConnections).some(p => p?.connected);
+  const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram'].includes(p));
 
   return (
     <Layout>
@@ -296,9 +348,6 @@ const Dashboard = () => {
             <div className="mb-4">
               <label className="block text-gray-300 font-medium mb-2">
                 {isThreadMode ? 'Thread Tweets (one per line)' : 'Content'}
-                {!isThreadMode && selectedPlatforms.includes('twitter') && (
-                  <span className="text-xs text-gray-400 ml-2">(Twitter limit: 280 chars)</span>
-                )}
               </label>
               <textarea
                 value={postContent}
@@ -307,85 +356,104 @@ const Dashboard = () => {
                 rows={isThreadMode ? 6 : 4}
                 placeholder={isThreadMode ? 'Tweet 1\nTweet 2\nTweet 3' : "What's on your mind?"}
               />
-              {!isThreadMode && selectedPlatforms.includes('twitter') && (
-                <div className={`text-right text-xs mt-1 ${postContent.length > 280 ? 'text-red-400' : 'text-gray-400'}`}>
-                  {postContent.length}/280 characters
-                </div>
-              )}
-              {!isThreadMode && selectedPlatforms.includes('instagram') && (
-                <div className={`text-right text-xs mt-1 ${postContent.length > 2200 ? 'text-red-400' : 'text-gray-400'}`}>
-                  {postContent.length}/2200 characters (Instagram limit)
-                </div>
-              )}
             </div>
             
-            {/* Media URL Field */}
+            {/* File Upload Section - Production Ready */}
             <div className="mb-4">
               <label className="block text-gray-300 font-medium mb-2">
                 <div className="flex items-center gap-2">
-                  <FiLink size={16} />
-                  Media URL (Optional)
+                  <FaUpload size={16} />
+                  Upload File
                 </div>
               </label>
-              <input
-                type="url"
-                value={mediaUrl}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                For YouTube: Provide a video URL. For Instagram/Facebook: Provide an image or video URL.
-              </p>
-            </div>
-            
-            {/* Media Type Selection (visible only when media URL is provided) */}
-            {mediaUrl && mediaUrl.trim() && (
-              <div className="mb-4">
-                <label className="block text-gray-300 font-medium mb-2">Media Type</label>
-                <div className="flex gap-3">
+              
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+                supportsFileUpload ? 'border-gray-600 hover:border-blue-500 cursor-pointer' : 'border-gray-700 opacity-50'
+              }`}>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept={selectedPlatforms.includes('youtube') ? 'video/*' : 'image/*'}
+                  onChange={handleFileSelect}
+                  disabled={!supportsFileUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className={`flex flex-col items-center gap-2 ${supportsFileUpload ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                >
+                  <FaUpload size={32} className="text-gray-400" />
+                  <span className="text-gray-400">
+                    {selectedFile ? selectedFile.name : (supportsFileUpload ? 'Click or drag to select file' : 'Select platforms that support file uploads first')}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {selectedPlatforms.includes('youtube') 
+                      ? 'MP4, MOV, AVI, MKV, WEBM (Max 128GB)' 
+                      : 'JPEG, PNG, GIF, WEBP (Max 10MB for images)'}
+                  </span>
+                </label>
+              </div>
+              
+              {selectedFile && (
+                <div className="mt-3 flex items-center justify-between bg-gray-700 rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    {selectedFile.type.startsWith('video/') ? (
+                      <FiVideo className="text-blue-400" size={20} />
+                    ) : (
+                      <FiImage className="text-green-400" size={20} />
+                    )}
+                    <div>
+                      <p className="text-white text-sm font-medium">{selectedFile.name}</p>
+                      <p className="text-gray-400 text-xs">
+                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
                   <button
-                    type="button"
-                    onClick={() => setMediaType('image')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                      mediaType === 'image' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
+                    onClick={() => {
+                      setSelectedFile(null);
+                      document.getElementById('file-upload').value = '';
+                    }}
+                    className="text-gray-400 hover:text-red-400 transition-colors"
                   >
-                    <FiImage size={16} />
-                    Image
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMediaType('video')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                      mediaType === 'video' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    <FiVideo size={16} />
-                    Video
+                    Remove
                   </button>
                 </div>
-                {!mediaType && (
-                  <p className="text-xs text-yellow-500 mt-2">Please select Image or Video</p>
-                )}
-              </div>
-            )}
+              )}
+              
+              {!supportsFileUpload && selectedPlatforms.length > 0 && (
+                <p className="text-xs text-yellow-500 mt-2">
+                  Note: File upload is only supported for YouTube, Facebook, and Instagram
+                </p>
+              )}
+            </div>
             
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <button
-                onClick={handlePublish}
-                disabled={publishing || selectedPlatforms.length === 0 || !postContent.trim() || (mediaUrl && !mediaType)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {publishing ? <FaSpinner className="animate-spin" /> : <FiSend />}
-                {isThreadMode ? 'Post Thread' : 'Publish'}
-              </button>
+              {supportsFileUpload && selectedFile ? (
+                <button
+                  onClick={handleFileUpload}
+                  disabled={uploading || selectedPlatforms.length === 0 || !postContent.trim() || !selectedFile}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {uploading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
+                  {uploading ? 'Uploading...' : 'Upload & Publish'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => toast.info('Please select a file to upload')}
+                  disabled
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold opacity-50 cursor-not-allowed flex items-center gap-2"
+                >
+                  <FaUpload />
+                  Select File First
+                </button>
+              )}
             </div>
+            
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Upload videos for YouTube or images for Facebook/Instagram
+            </p>
           </div>
         )}
 

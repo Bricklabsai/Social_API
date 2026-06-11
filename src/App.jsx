@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Posts from './pages/Posts';
 import Analytics from './pages/Analytics';
+import PostDetail from './pages/PostDetail';
 import './App.css';
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/posts/:id"
+  element={
+    <ProtectedRoute>
+      <PostDetail />
+    </ProtectedRoute>
+  }
+/>
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </AuthProvider>

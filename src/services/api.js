@@ -53,9 +53,33 @@ export const auth = {
 // PLATFORMS API
 // ============================================
 export const platforms = {
-  getConnections: () => api.get('/users/me/platforms'),
+  getConnections: async () => {
+    try {
+      const response = await api.get('/users/me/platforms');
+      // Handle different response structures
+      let platformsData = [];
+      
+      if (response.data && response.data.platforms) {
+        // Structure: { platforms: [...] }
+        platformsData = response.data.platforms;
+      } else if (Array.isArray(response.data)) {
+        // Structure: [...]
+        platformsData = response.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Structure: { facebook: {...}, youtube: {...} }
+        platformsData = Object.entries(response.data).map(([key, value]) => ({
+          platform: key,
+          ...value
+        }));
+      }
+      
+      return { data: { platforms: platformsData } };
+    } catch (error) {
+      console.error('Error fetching connections:', error);
+      throw error;
+    }
+  },
   connect: (platform) => {
-    // Get user ID from localStorage
     let userId = 1;
     const userStr = localStorage.getItem('user');
     if (userStr && userStr !== 'undefined') {
@@ -77,6 +101,13 @@ export const platforms = {
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
+  
+  uploadFile: (formData) => api.post('/publish/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  
   publishBackground: (data) => api.post('/publish/background', data),
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
@@ -94,7 +125,4 @@ export const analytics = {
   getPostAnalytics: (postId) => api.get(`/analytics/${postId}`),
 };
 
-// ============================================
-// DEFAULT EXPORT
-// ============================================
 export default api;
