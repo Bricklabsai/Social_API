@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Posts from './pages/Posts';
 import Analytics from './pages/Analytics';
 import PostDetail from './pages/PostDetail';
+import Comments from './pages/Comments';
 import './App.css';
 
 function App() {
@@ -35,6 +36,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+  path="/comments"
+  element={
+    <ProtectedRoute>
+      <Comments />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="/analytics"
             element={

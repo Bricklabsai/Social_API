@@ -56,17 +56,13 @@ export const platforms = {
   getConnections: async () => {
     try {
       const response = await api.get('/users/me/platforms');
-      // Handle different response structures
       let platformsData = [];
       
       if (response.data && response.data.platforms) {
-        // Structure: { platforms: [...] }
         platformsData = response.data.platforms;
       } else if (Array.isArray(response.data)) {
-        // Structure: [...]
         platformsData = response.data;
       } else if (response.data && typeof response.data === 'object') {
-        // Structure: { facebook: {...}, youtube: {...} }
         platformsData = Object.entries(response.data).map(([key, value]) => ({
           platform: key,
           ...value
@@ -123,6 +119,20 @@ export const posts = {
 export const analytics = {
   getSummary: () => api.get('/analytics/summary'),
   getPostAnalytics: (postId) => api.get(`/analytics/${postId}`),
+  refresh: () => api.post('/analytics/refresh'),
+  refreshPost: (postId) => api.post(`/analytics/refresh/${postId}`),
+};
+
+// ============================================
+// COMMENTS API - ADD THIS SECTION
+// ============================================
+export const comments = {
+  getInbox: (limit = 20) => api.get(`/comments/inbox?limit=${limit}`),
+  getPostComments: (postId, platform, limit = 50) => 
+    api.get(`/comments/posts/${postId}/${platform}?limit=${limit}`),
+  replyToComment: (platform, commentId, replyText) => 
+    api.post(`/comments/${platform}/${commentId}/reply`, { reply_text: replyText }),
+  getPlatforms: () => api.get('/comments/platforms'),
 };
 
 export default api;

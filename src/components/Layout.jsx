@@ -65,7 +65,7 @@ const Layout = ({ children }) => {
       title: 'ENGAGEMENT',
       icon: FiUsers,
       items: [
-        { path: '/comments', icon: FiMessageSquare, label: 'Comments', comingSoon: true },
+ { path: '/comments', icon: FiMessageSquare, label: 'Comments' },
         { path: '/mentions', icon: FiBell, label: 'Mentions', comingSoon: true },
         { path: '/messages', icon: FiMail, label: 'Messages', comingSoon: true },
         { path: '/reviews', icon: FiStar, label: 'Reviews', comingSoon: true },
