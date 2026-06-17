@@ -104,6 +104,16 @@ export const posts = {
     },
   }),
   
+  // FIXED: Send platforms as JSON string
+  publishWithMedia: (formData) => {
+    // Make sure platforms is a JSON string before sending
+    return api.post('/publish/upload-with-media', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
   publishBackground: (data) => api.post('/publish/background', data),
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
@@ -124,7 +134,7 @@ export const analytics = {
 };
 
 // ============================================
-// COMMENTS API - ADD THIS SECTION
+// COMMENTS API
 // ============================================
 export const comments = {
   getInbox: (limit = 20) => api.get(`/comments/inbox?limit=${limit}`),
