@@ -36,15 +36,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
-  path="/comments"
-  element={
-    <ProtectedRoute>
-      <Comments />
-    </ProtectedRoute>
-  }
-/>
+            path="/comments"
+            element={
+              <ProtectedRoute>
+                <Comments />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/analytics"
             element={
@@ -54,13 +53,13 @@ function App() {
             }
           />
           <Route
-  path="/posts/:id"
-  element={
-    <ProtectedRoute>
-      <PostDetail />
-    </ProtectedRoute>
-  }
-/>
+            path="/posts/:id"
+            element={
+              <ProtectedRoute>
+                <PostDetail />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </AuthProvider>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { comments } from '../services/api';
 import { 
   FaFacebook, FaYoutube, FaInstagram, FaTwitter, FaLinkedin,
@@ -18,7 +17,7 @@ const platformIcons = {
 };
 
 const Comments = () => {
-  const [comments, setComments] = useState([]);
+  const [commentList, setCommentList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -33,7 +32,7 @@ const Comments = () => {
     try {
       setLoading(true);
       const response = await comments.getInbox();
-      setComments(response.data.comments || []);
+      setCommentList(response.data.comments || []);
     } catch (error) {
       console.error('Failed to fetch comments:', error);
       toast.error('Failed to load comments');
@@ -67,7 +66,6 @@ const Comments = () => {
         toast.success('Reply sent successfully!');
         setReplyingTo(null);
         setReplyText('');
-        // Refresh comments to show the reply
         await fetchComments();
       } else {
         toast.error(response.data.detail || 'Failed to send reply');
@@ -88,28 +86,30 @@ const Comments = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-96">
-          <FaSpinner className="animate-spin text-blue-400 text-4xl mb-4" />
-          <p className="text-gray-400">Loading your comments...</p>
-        </div>
-      </Layout>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <FaSpinner className="animate-spin text-pink-400 text-4xl mb-4" />
+        <p className="text-gray-400">Loading your comments...</p>
+      </div>
     );
   }
 
+  const totalComments = commentList.length;
+  const platformCount = [...new Set(commentList.map(c => c.platform))].length;
+  const pendingReplies = commentList.filter(c => c.can_reply !== false).length;
+
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Comments & Inbox</h1>
-            <p className="text-gray-400 mt-1">Manage and reply to comments from all platforms</p>
+            <h1 className="text-3xl font-bold text-gray-800">Comments & Inbox</h1>
+            <p className="text-gray-500 mt-1">Manage and reply to comments from all platforms</p>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50"
           >
             <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
             Refresh
@@ -117,58 +117,56 @@ const Comments = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-800 rounded-xl p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
             <p className="text-gray-400 text-sm">Total Comments</p>
-            <p className="text-2xl font-bold text-white">{comments.length}</p>
+            <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">{totalComments}</p>
           </div>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
             <p className="text-gray-400 text-sm">Platforms</p>
             <div className="flex gap-2 mt-1">
-              {[...new Set(comments.map(c => c.platform))].map(platform => (
-                <span key={platform} className="text-white">{platformIcons[platform]}</span>
+              {[...new Set(commentList.map(c => c.platform))].map(platform => (
+                <span key={platform} className="text-gray-700">{platformIcons[platform]}</span>
               ))}
-              {comments.length === 0 && <span className="text-gray-500">None</span>}
+              {commentList.length === 0 && <span className="text-gray-400">None</span>}
             </div>
           </div>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
             <p className="text-gray-400 text-sm">Pending Replies</p>
-            <p className="text-2xl font-bold text-white">
-              {comments.filter(c => c.can_reply !== false).length}
-            </p>
+            <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">{pendingReplies}</p>
           </div>
         </div>
 
         {/* Comments List */}
-        {comments.length === 0 ? (
-          <div className="bg-gray-800 rounded-xl p-12 text-center">
-            <div className="text-gray-500 text-6xl mb-4">💬</div>
+        {commentList.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+            <div className="text-6xl mb-4">💬</div>
             <p className="text-gray-400">No comments yet. Comments from your posts will appear here.</p>
             <p className="text-gray-500 text-sm mt-2">Try posting content and engaging with your audience!</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {comments.map((comment, index) => (
-              <div key={index} className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-gray-600 transition-colors">
+            {commentList.map((comment, index) => (
+              <div key={index} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:shadow-pink-100/50 transition-all duration-300">
                 {/* Comment Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                      <FaUser className="text-gray-400" size={16} />
+                    <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center">
+                      <FaUser className="text-pink-500" size={16} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-white font-medium">{comment.author || 'Unknown User'}</span>
+                        <span className="text-gray-800 font-medium">{comment.author || 'Unknown User'}</span>
                         <span className="text-xs text-gray-500">{comment.platform && platformIcons[comment.platform]}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span className="flex items-center gap-1">
                           <FaClock size={12} />
                           {formatDate(comment.created_at)}
                         </span>
                         {comment.like_count > 0 && (
                           <span className="flex items-center gap-1">
-                            <FaHeart size={12} className="text-red-400" />
+                            <FaHeart size={12} className="text-pink-400" />
                             {comment.like_count}
                           </span>
                         )}
@@ -179,7 +177,7 @@ const Comments = () => {
                     {comment.can_reply !== false && (
                       <button
                         onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                        className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+                        className="px-3 py-1 text-sm bg-gradient-to-r from-pink-400/20 to-blue-300/20 text-pink-600 rounded-lg transition-colors hover:from-pink-400/30 hover:to-blue-300/30 flex items-center gap-1"
                       >
                         <FaReply size={12} />
                         Reply
@@ -190,24 +188,24 @@ const Comments = () => {
 
                 {/* Comment Text */}
                 <div className="mt-3 ml-14">
-                  <p className="text-gray-300">{comment.text || 'No text'}</p>
+                  <p className="text-gray-700">{comment.text || 'No text'}</p>
                   {comment.post_content && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       On post: {comment.post_content}
                     </p>
                   )}
                 </div>
 
-                {/* Reply Input (expanded) */}
+                {/* Reply Input */}
                 {replyingTo === comment.id && (
                   <div className="mt-4 ml-14">
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <input
                         type="text"
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Write your reply..."
-                        className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
@@ -215,23 +213,25 @@ const Comments = () => {
                           }
                         }}
                       />
-                      <button
-                        onClick={() => handleReply(comment)}
-                        disabled={sendingReply || !replyText.trim()}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {sendingReply ? <FaSpinner className="animate-spin" /> : <FiSend size={16} />}
-                        Send
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReplyingTo(null);
-                          setReplyText('');
-                        }}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-all"
-                      >
-                        Cancel
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleReply(comment)}
+                          disabled={sendingReply || !replyText.trim()}
+                          className="px-4 py-2 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {sendingReply ? <FaSpinner className="animate-spin" /> : <FiSend size={16} />}
+                          Send
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReplyingTo(null);
+                            setReplyText('');
+                          }}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-all"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -240,7 +240,7 @@ const Comments = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </div>
   );
 };
 

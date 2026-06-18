@@ -25,14 +25,30 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl max-w-md w-full p-8 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">S</span>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+      <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl border border-gray-100">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <div className="relative">
+            {/* Glow effect behind logo */}
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-2xl blur-xl opacity-30 animate-pulse"></div>
+            {/* Logo container */}
+            <div className="relative w-24 h-24 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50 transition-all hover:scale-105 duration-300 overflow-hidden">
+              {/* Custom Logo Image - Replace with your logo */}
+              <img 
+                src="/logo.png" 
+                alt="SocialHub" 
+                className="w-16 h-16 object-contain"
+              />
+              {/* If you don't have an image yet, use text fallback */}
+              {/* <span className="text-white font-bold text-2xl tracking-tight">SH</span> */}
+            </div>
           </div>
+        </div>
+        
+        <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
-          <p className="text-gray-500 mt-2">Sign in to your account</p>
+          <p className="text-gray-500 mt-2">Sign in to your SocialHub account</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -44,7 +60,7 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all bg-gray-50/50 hover:bg-white"
                 placeholder="you@example.com"
                 required
               />
@@ -59,7 +75,7 @@ const Login = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all bg-gray-50/50 hover:bg-white"
                 placeholder="••••••••"
                 required
               />
@@ -69,7 +85,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white py-3 rounded-lg font-semibold hover:opacity-90 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -84,7 +100,7 @@ const Login = () => {
         
         <p className="text-center mt-6 text-gray-500">
           Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline font-medium">
+          <Link to="/register" className="text-pink-500 hover:text-pink-600 font-medium hover:underline transition-colors">
             Create one
           </Link>
         </p>

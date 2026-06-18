@@ -3,7 +3,8 @@ import Layout from '../components/Layout';
 import { platforms, posts } from '../services/api';
 import { 
   FaFacebook, FaTwitter, FaLinkedin, FaYoutube, FaInstagram, FaWhatsapp,
-  FaCheckCircle, FaSpinner, FaPlug, FaUnlink, FaUpload, FaInfoCircle
+  FaCheckCircle, FaSpinner, FaPlug, FaUnlink, FaUpload, FaInfoCircle,
+  FaChartLine
 } from 'react-icons/fa';
 import { FiSend, FiImage, FiVideo, FiFile, FiType } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -136,8 +137,8 @@ const Dashboard = () => {
     let errorMessage = '';
 
     // Check if any selected platform supports the file type
-    const hasVideoPlatform = selectedPlatforms.some(p => ['youtube'].includes(p));
-    const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p));
+    const hasVideoPlatform = selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p));
+    const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
 
     if (hasVideoPlatform && validVideoTypes.includes(file.type)) {
       isValid = true;
@@ -146,10 +147,9 @@ const Dashboard = () => {
     } else if (selectedPlatforms.length === 0) {
       errorMessage = 'Please select a platform first';
     } else {
-      // Check what platforms are selected and suggest correct file type
       const suggestions = [];
-      if (selectedPlatforms.some(p => ['youtube'].includes(p))) suggestions.push('YouTube: MP4, MOV, AVI, MKV, WEBM');
-      if (selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p))) suggestions.push('Facebook/Instagram/LinkedIn: JPEG, PNG, GIF, WEBP');
+      if (selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p))) suggestions.push('YouTube/Twitter: MP4, MOV, AVI, MKV, WEBM');
+      if (selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p))) suggestions.push('Facebook/Instagram/LinkedIn/Twitter: JPEG, PNG, GIF, WEBP');
       
       errorMessage = `File type not supported for selected platforms.\n\nSupported formats:\n${suggestions.join('\n')}`;
     }
@@ -160,8 +160,7 @@ const Dashboard = () => {
       return;
     }
 
-    // Check file size
-    const maxSize = 128 * 1024 * 1024 * 1024; // 128GB
+    const maxSize = 128 * 1024 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(`File too large. Maximum size is 128GB. Your file: ${(file.size / (1024**3)).toFixed(2)}GB`);
       e.target.value = '';
@@ -172,7 +171,6 @@ const Dashboard = () => {
     toast.success(`File selected: ${file.name} (${(file.size / (1024**2)).toFixed(2)} MB)`);
   };
 
-  // TEXT-ONLY PUBLISH (NO FILE)
   const handleTextPublish = async () => {
     if (!postContent.trim()) {
       toast.error('Please enter content to post');
@@ -214,7 +212,6 @@ const Dashboard = () => {
     }
   };
 
-  // FILE UPLOAD PUBLISH (WITH IMAGE/VIDEO)
   const handleFileUpload = async () => {
     if (!postContent.trim()) {
       toast.error('Please enter content to post');
@@ -239,12 +236,6 @@ const Dashboard = () => {
       const isVideo = selectedFile.type.startsWith('video/');
       formData.append('media_type', isVideo ? 'video' : 'image');
       formData.append('file', selectedFile);
-
-      console.log('Sending FormData:');
-      console.log('  platforms:', JSON.stringify(selectedPlatforms));
-      console.log('  content:', postContent);
-      console.log('  media_type:', isVideo ? 'video' : 'image');
-      console.log('  file:', selectedFile.name);
 
       const response = await posts.publishWithMedia(formData);
       
@@ -281,8 +272,8 @@ const Dashboard = () => {
   };
 
   const isThreadMode = selectedPlatforms.includes('twitter') && selectedPlatforms.length === 1 && postContent.split('\n').filter(l => l.trim()).length > 1;
-  const hasImageSupport = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p));
-  const hasVideoSupport = selectedPlatforms.includes('youtube');
+  const hasImageSupport = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
+  const hasVideoSupport = selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p));
 
   const platformDisplayNames = {
     facebook: 'Facebook',
@@ -294,23 +285,41 @@ const Dashboard = () => {
   };
 
   const hasAnyConnection = Object.values(platformConnections).some(p => p?.connected);
-  const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram', 'linkedin'].includes(p));
+  const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
   
   const hasInstagram = selectedPlatforms.includes('instagram');
   const hasLinkedIn = selectedPlatforms.includes('linkedin');
+  const hasTwitter = selectedPlatforms.includes('twitter');
+
+  const connectedCount = Object.values(platformConnections).filter(p => p?.connected).length;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="text-gray-300 mt-1">Manage your social media presence from one place</p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+              <p className="text-gray-500 mt-1">Manage your social media presence from one place</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Connected Platforms</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">
+                  {connectedCount}/6
+                </p>
+              </div>
+              {/* <div className="w-12 h-12 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200/50">
+                <span className="text-white font-bold text-xl">S</span>
+              </div> */}
+            </div>
+          </div>
         </div>
 
         {/* Platform Cards */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Social Platforms</h2>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">Social Platforms</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
               const connection = platformConnections[platform];
@@ -321,33 +330,31 @@ const Dashboard = () => {
               return (
                 <div
                   key={platform}
-                  className={`bg-gray-800 rounded-xl p-4 text-center transition-all ${
-                    isConnected ? 'ring-2 ring-green-500' : 'ring-1 ring-gray-700'
+                  className={`bg-white rounded-xl p-4 text-center transition-all duration-300 border ${
+                    isConnected 
+                      ? 'border-pink-200 shadow-md shadow-pink-100/50' 
+                      : 'border-gray-100 hover:shadow-md hover:shadow-gray-100/50'
                   }`}
                 >
                   <div className="flex justify-center mb-3">
                     {platformIcons[platform]}
                   </div>
-                  <p className="text-white font-medium mb-2">{displayName}</p>
+                  <p className={`font-medium mb-2 ${isConnected ? 'text-gray-800' : 'text-gray-500'}`}>{displayName}</p>
                   
                   {loading ? (
-                    <FaSpinner className="animate-spin mx-auto text-gray-400" />
+                    <FaSpinner className="animate-spin mx-auto text-pink-400" />
                   ) : isConnected ? (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-center gap-1 text-green-400 text-xs">
+                      <div className="flex items-center justify-center gap-1 text-pink-500 text-xs">
                         <FaCheckCircle size={12} />
                         <span>Connected</span>
                       </div>
                       <button
                         onClick={() => handleDisconnect(platform)}
                         disabled={isInProgress}
-                        className="w-full px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                        className="w-full px-3 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                       >
-                        {isInProgress ? (
-                          <FaSpinner className="animate-spin" size={10} />
-                        ) : (
-                          <FaUnlink size={10} />
-                        )}
+                        {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaUnlink size={10} />}
                         Disconnect
                       </button>
                     </div>
@@ -355,13 +362,9 @@ const Dashboard = () => {
                     <button
                       onClick={() => handleConnect(platform)}
                       disabled={isInProgress}
-                      className="w-full px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                      className="w-full px-3 py-1.5 text-xs bg-gradient-to-r from-pink-400/20 via-pink-300/20 to-blue-300/20 hover:from-pink-400/30 hover:via-pink-300/30 hover:to-blue-300/30 text-pink-600 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                     >
-                      {isInProgress ? (
-                        <FaSpinner className="animate-spin" size={10} />
-                      ) : (
-                        <FaPlug size={10} />
-                      )}
+                      {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaPlug size={10} />}
                       Connect
                     </button>
                   )}
@@ -371,14 +374,17 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Publish Card - Only show if any platform is connected */}
+        {/* Publish Card */}
         {hasAnyConnection && (
-          <div className="bg-gray-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Create Post</h2>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FiSend className="text-pink-400" />
+              Create Post
+            </h2>
             
             {/* Platform Selection */}
             <div className="mb-4">
-              <label className="block text-gray-300 font-medium mb-2">Select Platforms</label>
+              <label className="block text-gray-700 font-medium mb-2">Select Platforms</label>
               <div className="flex flex-wrap gap-3">
                 {['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
                   const connection = platformConnections[platform];
@@ -393,8 +399,8 @@ const Dashboard = () => {
                       onClick={() => handlePlatformToggle(platform)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                         isSelected 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          ? 'bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white shadow-md shadow-pink-200/50' 
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
                       {platformIcons[platform]}
@@ -404,226 +410,117 @@ const Dashboard = () => {
                 })}
               </div>
               {selectedPlatforms.length === 0 && (
-                <p className="text-sm text-yellow-500 mt-2">Please select at least one platform</p>
+                <p className="text-sm text-amber-500 mt-2">Please select at least one platform</p>
               )}
             </div>
             
             {/* Content Input */}
             <div className="mb-4">
-              <label className="block text-gray-300 font-medium mb-2">
+              <label className="block text-gray-700 font-medium mb-2">
                 <div className="flex items-center gap-2">
                   <FiType size={16} />
                   Content
                 </div>
-                {selectedPlatforms.includes('twitter') && (
-                  <span className="text-xs text-gray-400 ml-2">(Twitter limit: 280 chars)</span>
-                )}
-                {hasInstagram && (
-                  <span className="text-xs text-yellow-500 ml-2">(Instagram requires image/video)</span>
-                )}
               </label>
               <textarea
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
                 rows={isThreadMode ? 6 : 4}
-                placeholder={isThreadMode ? 'Tweet 1\nTweet 2\nTweet 3' : "What's on your mind?"}
+                placeholder="What's on your mind?"
               />
-              {selectedPlatforms.includes('twitter') && !isThreadMode && (
-                <div className={`text-right text-xs mt-1 ${postContent.length > 280 ? 'text-red-400' : 'text-gray-400'}`}>
-                  {postContent.length}/280 characters
-                </div>
-              )}
             </div>
             
-            {/* TEXT-ONLY PUBLISH BUTTON */}
-            <div className="mb-4">
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleTextPublish}
                 disabled={publishing || selectedPlatforms.length === 0 || !postContent.trim() || hasInstagram}
-                className={`w-full px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                   hasInstagram 
-                    ? 'bg-gray-600 cursor-not-allowed opacity-50' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-gray-100 cursor-not-allowed text-gray-400' 
+                    : 'bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white hover:shadow-lg hover:shadow-pink-200/50'
                 }`}
               >
                 {publishing ? <FaSpinner className="animate-spin" /> : <FiSend />}
-                {publishing ? 'Publishing...' : 'Publish Text Post'}
+                {publishing ? 'Publishing...' : 'Publish Text'}
               </button>
-              {hasInstagram && (
-                <p className="text-xs text-yellow-500 text-center mt-1">
-                  Instagram requires an image/video. Use the upload section below.
-                </p>
-              )}
-              <p className="text-xs text-gray-500 text-center mt-1">
-                Post text to all selected platforms (except Instagram which needs media)
-              </p>
-            </div>
-            
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-2 bg-gray-800 text-gray-400">OR</span>
-              </div>
-            </div>
-            
-            {/* File Upload Section - For images/videos */}
-            <div className="mb-4">
-              <label className="block text-gray-300 font-medium mb-2">
-                <div className="flex items-center gap-2">
-                  <FaUpload size={16} />
-                  Upload Image/Video
-                </div>
-                {hasInstagram && (
-                  <span className="text-xs text-blue-400 ml-2 flex items-center gap-1">
-                    <FaInfoCircle size={12} />
-                    Instagram requires image/video for business posts
-                  </span>
-                )}
-                {hasLinkedIn && (
-                  <span className="text-xs text-blue-400 ml-2 flex items-center gap-1">
-                    <FaInfoCircle size={12} />
-                    LinkedIn supports image uploads
-                  </span>
-                )}
-              </label>
               
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
-                supportsFileUpload ? 'border-gray-600 hover:border-blue-500 cursor-pointer' : 'border-gray-700 opacity-50'
-              }`}>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept={hasVideoSupport ? 'video/*' : 'image/*,video/*'}
-                  onChange={handleFileSelect}
-                  disabled={!supportsFileUpload}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className={`flex flex-col items-center gap-2 ${supportsFileUpload ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                >
-                  <FaUpload size={32} className="text-gray-400" />
-                  <span className="text-gray-400">
-                    {selectedFile ? selectedFile.name : (supportsFileUpload ? 'Click to select image/video' : 'Select image/video supported platforms first')}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {hasVideoSupport 
-                      ? 'MP4, MOV, AVI, MKV, WEBM (Max 128GB)' 
-                      : hasInstagram && selectedPlatforms.length === 1
-                      ? 'JPEG, PNG, GIF, WEBP (Max 8MB for Instagram)'
-                      : hasLinkedIn && selectedPlatforms.length === 1
-                      ? 'JPEG, PNG, GIF, WEBP (Max 10MB for LinkedIn)'
-                      : 'JPEG, PNG, GIF, WEBP (Max 10MB)'}
-                  </span>
-                </label>
-              </div>
-              
-              {selectedFile && (
-                <div className="mt-3 flex items-center justify-between bg-gray-700 rounded-lg p-3">
-                  <div className="flex items-center gap-3">
-                    {selectedFile.type.startsWith('video/') ? (
-                      <FiVideo className="text-blue-400" size={20} />
-                    ) : (
-                      <FiImage className="text-green-400" size={20} />
-                    )}
-                    <div>
-                      <p className="text-white text-sm font-medium">{selectedFile.name}</p>
-                      <p className="text-gray-400 text-xs">
-                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                    </div>
+              {supportsFileUpload && (
+                <>
+                  <div className="relative flex-1">
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept={hasVideoSupport ? 'video/*' : 'image/*,video/*'}
+                      onChange={handleFileSelect}
+                      disabled={!supportsFileUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 border-2 border-dashed ${
+                        supportsFileUpload 
+                          ? 'border-pink-300 text-pink-600 hover:bg-pink-50 cursor-pointer' 
+                          : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <FaUpload />
+                      {selectedFile ? selectedFile.name : 'Select File'}
+                    </label>
                   </div>
+                  
                   <button
-                    onClick={() => {
-                      setSelectedFile(null);
-                      document.getElementById('file-upload').value = '';
-                    }}
-                    className="text-gray-400 hover:text-red-400 transition-colors"
+                    onClick={handleFileUpload}
+                    disabled={uploading || selectedPlatforms.length === 0 || !postContent.trim() || !selectedFile}
+                    className="flex-1 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Remove
+                    {uploading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
+                    {uploading ? 'Uploading...' : 'Publish with Media'}
                   </button>
-                </div>
-              )}
-              
-              {!supportsFileUpload && selectedPlatforms.length > 0 && (
-                <p className="text-xs text-yellow-500 mt-2">
-                  Note: File upload is supported for YouTube (video), Facebook (image), Instagram (image), and LinkedIn (image)
-                </p>
-              )}
-              
-              {hasInstagram && selectedPlatforms.length === 1 && selectedFile && (
-                <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
-                  Your image will be uploaded and posted to Instagram with the caption above
-                </p>
-              )}
-              
-              {hasLinkedIn && selectedPlatforms.length === 1 && selectedFile && (
-                <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
-                  Your image will be uploaded and posted to LinkedIn with the caption above
-                </p>
+                </>
               )}
             </div>
-            
-            {/* FILE UPLOAD BUTTON */}
-            {supportsFileUpload && (
-              <button
-                onClick={handleFileUpload}
-                disabled={uploading || selectedPlatforms.length === 0 || !postContent.trim() || !selectedFile}
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {uploading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
-                {uploading ? 'Uploading & Publishing...' : 'Publish with Media'}
-              </button>
-            )}
           </div>
         )}
 
         {/* No Connections Message */}
         {!hasAnyConnection && !loading && (
-          <div className="bg-gray-800 rounded-xl p-8 text-center">
-            <div className="text-gray-400 mb-3">
-              <FaPlug size={48} className="mx-auto opacity-50" />
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+            <div className="text-gray-200 mb-3">
+              <FaPlug size={48} className="mx-auto" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Platforms Connected</h3>
-            <p className="text-gray-400 mb-4">
-              Connect your social media accounts to start posting
-            </p>
-            <p className="text-sm text-gray-500">
-              Click "Connect" on any platform above to get started
-            </p>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Platforms Connected</h3>
+            <p className="text-gray-400 mb-4">Connect your social media accounts to start posting</p>
           </div>
         )}
 
         {/* Quick Stats */}
-        <div className="bg-gray-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-3">Quick Stats</h3>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Quick Stats</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">
-                {Object.values(platformConnections).filter(p => p?.connected).length}
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
+              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">
+                {connectedCount}
               </p>
-              <p className="text-sm text-gray-400">Connected Platforms</p>
+              <p className="text-sm text-gray-500">Connected Platforms</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">—</p>
-              <p className="text-sm text-gray-400">Posts Today</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
+              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
+              <p className="text-sm text-gray-500">Posts Today</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">—</p>
-              <p className="text-sm text-gray-400">Total Reach</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
+              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
+              <p className="text-sm text-gray-500">Total Reach</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">—</p>
-              <p className="text-sm text-gray-400">Engagement</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
+              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
+              <p className="text-sm text-gray-500">Engagement</p>
             </div>
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 

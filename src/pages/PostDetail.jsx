@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
 import { posts } from '../services/api';
 import { 
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp,
@@ -15,38 +14,42 @@ const platformConfig = {
   facebook: { 
     icon: <FaFacebook className="text-blue-600" size={20} />, 
     name: 'Facebook',
-    color: 'text-blue-600'
+    color: 'text-blue-600',
+    bg: 'bg-blue-50'
   },
   instagram: { 
     icon: <FaInstagram className="text-pink-600" size={20} />, 
     name: 'Instagram',
-    color: 'text-pink-600'
+    color: 'text-pink-600',
+    bg: 'bg-pink-50'
   },
   twitter: { 
     icon: <FaTwitter className="text-sky-500" size={20} />, 
     name: 'Twitter',
-    color: 'text-sky-500'
+    color: 'text-sky-500',
+    bg: 'bg-sky-50'
   },
   linkedin: { 
     icon: <FaLinkedin className="text-blue-700" size={20} />, 
     name: 'LinkedIn',
-    color: 'text-blue-700'
+    color: 'text-blue-700',
+    bg: 'bg-blue-50'
   },
   youtube: { 
     icon: <FaYoutube className="text-red-600" size={20} />, 
     name: 'YouTube',
-    color: 'text-red-600'
+    color: 'text-red-600',
+    bg: 'bg-red-50'
   },
   whatsapp: { 
     icon: <FaWhatsapp className="text-green-500" size={20} />, 
     name: 'WhatsApp',
-    color: 'text-green-500'
+    color: 'text-green-500',
+    bg: 'bg-green-50'
   },
 };
 
-// ✅ SMART PLATFORM DETECTION (same as Posts.jsx)
 const detectPlatforms = (post) => {
-  // 1. Check if platforms array exists
   if (post.platforms && Array.isArray(post.platforms)) {
     if (post.platforms.includes('instagram')) {
       return post.platforms;
@@ -63,7 +66,6 @@ const detectPlatforms = (post) => {
     return post.platforms;
   }
   
-  // 2. Check if platform is a string
   if (post.platform) {
     if (post.platform === 'facebook') {
       if (post.instagram_business_id || 
@@ -75,7 +77,6 @@ const detectPlatforms = (post) => {
     return [post.platform];
   }
   
-  // 3. Check analytics
   if (post.analytics && post.analytics.length > 0) {
     const analyticsPlatforms = post.analytics.map(a => a.platform);
     if (analyticsPlatforms.includes('instagram')) return ['instagram'];
@@ -90,7 +91,8 @@ const getPlatformDisplay = (platform) => {
   return platformConfig[platform] || { 
     icon: <FaGlobe className="text-gray-400" size={20} />, 
     name: platform || 'Unknown',
-    color: 'text-gray-400'
+    color: 'text-gray-400',
+    bg: 'bg-gray-50'
   };
 };
 
@@ -108,7 +110,6 @@ const PostDetail = () => {
     try {
       const response = await posts.getPost(id);
       const postData = response.data;
-      // ✅ Detect platforms
       postData.detectedPlatforms = detectPlatforms(postData);
       setPost(postData);
     } catch (error) {
@@ -128,10 +129,10 @@ const PostDetail = () => {
   const getStatusBadge = () => {
     if (!post) return null;
     const statusConfig = {
-      completed: { icon: <FaCheckCircle />, text: 'Success', color: 'text-green-400 bg-green-900/30' },
-      partial: { icon: <FaExclamationTriangle />, text: 'Partial', color: 'text-yellow-400 bg-yellow-900/30' },
-      failed: { icon: <FaExclamationTriangle />, text: 'Failed', color: 'text-red-400 bg-red-900/30' },
-      processing: { icon: <FaSpinner className="animate-spin" />, text: 'Processing', color: 'text-blue-400 bg-blue-900/30' },
+      completed: { icon: <FaCheckCircle />, text: 'Success', color: 'text-green-600 bg-green-50' },
+      partial: { icon: <FaExclamationTriangle />, text: 'Partial', color: 'text-amber-600 bg-amber-50' },
+      failed: { icon: <FaExclamationTriangle />, text: 'Failed', color: 'text-red-600 bg-red-50' },
+      processing: { icon: <FaSpinner className="animate-spin" />, text: 'Processing', color: 'text-pink-600 bg-pink-50' },
     };
     const config = statusConfig[post.status] || statusConfig.processing;
     return (
@@ -144,27 +145,23 @@ const PostDetail = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <FaSpinner className="animate-spin text-blue-400 text-4xl" />
-        </div>
-      </Layout>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <FaSpinner className="animate-spin text-pink-400 text-4xl" />
+      </div>
     );
   }
 
   if (!post) {
     return (
-      <Layout>
-        <div className="text-center py-12">
-          <p className="text-gray-400">Post not found</p>
-          <button
-            onClick={() => navigate('/posts')}
-            className="mt-4 text-blue-400 hover:text-blue-300"
-          >
-            Back to Posts
-          </button>
-        </div>
-      </Layout>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <p className="text-gray-400">Post not found</p>
+        <button
+          onClick={() => navigate('/posts')}
+          className="mt-4 text-pink-500 hover:text-pink-600 transition-colors"
+        >
+          Back to Posts
+        </button>
+      </div>
     );
   }
 
@@ -174,13 +171,13 @@ const PostDetail = () => {
   const mediaType = post.media_type || null;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => navigate('/posts')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-gray-500 hover:text-pink-500 transition-colors"
           >
             <FaArrowLeft size={20} />
             Back to Posts
@@ -188,14 +185,14 @@ const PostDetail = () => {
         </div>
 
         {/* Post Card */}
-        <div className="bg-gray-800 rounded-xl overflow-hidden">
-          {/* ✅ Platform Badge */}
-          <div className="p-6 border-b border-gray-700 bg-gray-900/50">
-            <div className="flex items-center gap-3">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Platform Badge */}
+          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex flex-wrap items-center gap-3">
               {platforms.map(platform => {
                 const config = getPlatformDisplay(platform);
                 return (
-                  <div key={platform} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-full">
+                  <div key={platform} className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${config.bg}`}>
                     {config.icon}
                     <span className={`font-medium capitalize ${config.color}`}>{config.name}</span>
                   </div>
@@ -206,25 +203,25 @@ const PostDetail = () => {
 
           {/* Media Preview */}
           {mediaUrl && (
-            <div className="bg-gray-900 p-8 flex justify-center items-center border-b border-gray-700">
+            <div className="bg-gray-50 p-8 flex justify-center items-center border-b border-gray-100">
               {mediaType === 'video' ? (
                 <div className="text-center">
-                  <div className="w-32 h-32 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaYoutube size={48} className="text-red-500" />
                   </div>
                   <p className="text-gray-400 text-sm truncate max-w-md">Video: {mediaUrl}</p>
                 </div>
               ) : mediaType === 'image' ? (
                 <div className="text-center">
-                  <div className="w-32 h-32 bg-pink-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaInstagram size={48} className="text-pink-500" />
                   </div>
                   <p className="text-gray-400 text-sm truncate max-w-md">Image: {mediaUrl}</p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <div className="w-32 h-32 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaExternalLink size={48} className="text-blue-500" />
+                  <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaExternalLink size={48} className="text-pink-400" />
                   </div>
                   <p className="text-gray-400 text-sm truncate max-w-md">Media: {mediaUrl}</p>
                 </div>
@@ -235,7 +232,7 @@ const PostDetail = () => {
           {/* Content */}
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {getStatusBadge()}
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <FaCalendar size={14} />
@@ -244,7 +241,7 @@ const PostDetail = () => {
               </div>
               <button
                 onClick={() => copyToClipboard(content)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-pink-500 transition-colors"
                 title="Copy content"
               >
                 <FiCopy size={18} />
@@ -252,7 +249,7 @@ const PostDetail = () => {
             </div>
 
             <div className="mb-6">
-              <p className="text-white text-lg leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap">
                 {content || 'No content'}
               </p>
             </div>
@@ -260,34 +257,34 @@ const PostDetail = () => {
             {/* Analytics */}
             {post.analytics && post.analytics.length > 0 && (
               <div>
-                <h3 className="text-gray-400 text-sm font-medium mb-3">Analytics</h3>
+                <h3 className="text-gray-600 text-sm font-medium mb-3">Analytics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {post.analytics.map((analytic, idx) => {
                     const config = getPlatformDisplay(analytic.platform);
                     return (
-                      <div key={idx} className="bg-gray-700/50 rounded-lg p-4">
+                      <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                         <div className="flex items-center gap-2 mb-3">
                           {config.icon}
                           <span className={`font-medium capitalize ${config.color}`}>{config.name}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-center gap-2 text-gray-400">
+                          <div className="flex items-center gap-2 text-gray-500">
                             <FaEye size={14} />
                             <span>Reach: {analytic.reach || 0}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-400">
+                          <div className="flex items-center gap-2 text-gray-500">
                             <FaChartLine size={14} />
                             <span>Impressions: {analytic.impressions || 0}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-400">
+                          <div className="flex items-center gap-2 text-gray-500">
                             <FaHeart size={14} />
                             <span>Likes: {analytic.likes || 0}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-400">
+                          <div className="flex items-center gap-2 text-gray-500">
                             <FaComment size={14} />
                             <span>Comments: {analytic.comments || 0}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-400">
+                          <div className="flex items-center gap-2 text-gray-500">
                             <FaShare size={14} />
                             <span>Shares: {analytic.shares || 0}</span>
                           </div>
@@ -300,15 +297,15 @@ const PostDetail = () => {
             )}
 
             {/* Timestamps */}
-            <div className="mt-6 pt-4 border-t border-gray-700 text-xs text-gray-500">
+            <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
               <p>Created: {new Date(post.created_at || post.createdAt || Date.now()).toLocaleString()}</p>
               {post.published_at && <p>Published: {new Date(post.published_at).toLocaleString()}</p>}
             </div>
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
-export default PostDetail; 
+export default PostDetail;
