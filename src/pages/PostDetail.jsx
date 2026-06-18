@@ -5,18 +5,93 @@ import { posts } from '../services/api';
 import { 
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaArrowLeft,
-  FaEye, FaHeart, FaComment, FaShare, FaChartLine
+  FaEye, FaHeart, FaComment, FaShare, FaChartLine, FaGlobe
 } from 'react-icons/fa';
 import { FiCopy, FiExternalLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-const platformIcons = {
-  facebook: <FaFacebook className="text-blue-600" size={20} />,
-  instagram: <FaInstagram className="text-pink-600" size={20} />,
-  twitter: <FaTwitter className="text-sky-500" size={20} />,
-  linkedin: <FaLinkedin className="text-blue-700" size={20} />,
-  youtube: <FaYoutube className="text-red-600" size={20} />,
-  whatsapp: <FaWhatsapp className="text-green-500" size={20} />,
+// Platform config
+const platformConfig = {
+  facebook: { 
+    icon: <FaFacebook className="text-blue-600" size={20} />, 
+    name: 'Facebook',
+    color: 'text-blue-600'
+  },
+  instagram: { 
+    icon: <FaInstagram className="text-pink-600" size={20} />, 
+    name: 'Instagram',
+    color: 'text-pink-600'
+  },
+  twitter: { 
+    icon: <FaTwitter className="text-sky-500" size={20} />, 
+    name: 'Twitter',
+    color: 'text-sky-500'
+  },
+  linkedin: { 
+    icon: <FaLinkedin className="text-blue-700" size={20} />, 
+    name: 'LinkedIn',
+    color: 'text-blue-700'
+  },
+  youtube: { 
+    icon: <FaYoutube className="text-red-600" size={20} />, 
+    name: 'YouTube',
+    color: 'text-red-600'
+  },
+  whatsapp: { 
+    icon: <FaWhatsapp className="text-green-500" size={20} />, 
+    name: 'WhatsApp',
+    color: 'text-green-500'
+  },
+};
+
+// ✅ SMART PLATFORM DETECTION (same as Posts.jsx)
+const detectPlatforms = (post) => {
+  // 1. Check if platforms array exists
+  if (post.platforms && Array.isArray(post.platforms)) {
+    if (post.platforms.includes('instagram')) {
+      return post.platforms;
+    }
+    if (post.platforms.includes('facebook')) {
+      if (post.instagram_business_id || 
+          post.media_type === 'image' || 
+          post.content?.includes('#') ||
+          post.analytics?.some(a => a.platform === 'instagram')) {
+        return ['instagram'];
+      }
+      return post.platforms;
+    }
+    return post.platforms;
+  }
+  
+  // 2. Check if platform is a string
+  if (post.platform) {
+    if (post.platform === 'facebook') {
+      if (post.instagram_business_id || 
+          post.media_type === 'image' ||
+          post.analytics?.some(a => a.platform === 'instagram')) {
+        return ['instagram'];
+      }
+    }
+    return [post.platform];
+  }
+  
+  // 3. Check analytics
+  if (post.analytics && post.analytics.length > 0) {
+    const analyticsPlatforms = post.analytics.map(a => a.platform);
+    if (analyticsPlatforms.includes('instagram')) return ['instagram'];
+    if (analyticsPlatforms.includes('facebook')) return ['facebook'];
+    return analyticsPlatforms;
+  }
+  
+  return ['unknown'];
+};
+
+const getPlatformDisplay = (platform) => {
+  return platformConfig[platform] || { 
+    icon: <FaGlobe className="text-gray-400" size={20} />, 
+    name: platform || 'Unknown',
+    color: 'text-gray-400'
+  };
 };
 
 const PostDetail = () => {
@@ -32,7 +107,10 @@ const PostDetail = () => {
   const fetchPost = async () => {
     try {
       const response = await posts.getPost(id);
-      setPost(response.data);
+      const postData = response.data;
+      // ✅ Detect platforms
+      postData.detectedPlatforms = detectPlatforms(postData);
+      setPost(postData);
     } catch (error) {
       console.error('Failed to fetch post:', error);
       toast.error('Post not found');
@@ -90,6 +168,11 @@ const PostDetail = () => {
     );
   }
 
+  const platforms = post.detectedPlatforms || ['unknown'];
+  const content = post.content || post.content_text || '';
+  const mediaUrl = post.media_url || post.content_media_url || null;
+  const mediaType = post.media_type || null;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -106,24 +189,46 @@ const PostDetail = () => {
 
         {/* Post Card */}
         <div className="bg-gray-800 rounded-xl overflow-hidden">
+          {/* ✅ Platform Badge */}
+          <div className="p-6 border-b border-gray-700 bg-gray-900/50">
+            <div className="flex items-center gap-3">
+              {platforms.map(platform => {
+                const config = getPlatformDisplay(platform);
+                return (
+                  <div key={platform} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-full">
+                    {config.icon}
+                    <span className={`font-medium capitalize ${config.color}`}>{config.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Media Preview */}
-          {post.media_url && (
+          {mediaUrl && (
             <div className="bg-gray-900 p-8 flex justify-center items-center border-b border-gray-700">
-              {post.media_type === 'video' ? (
+              {mediaType === 'video' ? (
                 <div className="text-center">
                   <div className="w-32 h-32 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaYoutube size={48} className="text-red-500" />
                   </div>
-                  <p className="text-gray-400 text-sm">Video: {post.media_url}</p>
+                  <p className="text-gray-400 text-sm truncate max-w-md">Video: {mediaUrl}</p>
                 </div>
-              ) : post.media_type === 'image' ? (
+              ) : mediaType === 'image' ? (
                 <div className="text-center">
-                  <div className="w-32 h-32 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-32 h-32 bg-pink-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaInstagram size={48} className="text-pink-500" />
                   </div>
-                  <p className="text-gray-400 text-sm">Image: {post.media_url}</p>
+                  <p className="text-gray-400 text-sm truncate max-w-md">Image: {mediaUrl}</p>
                 </div>
-              ) : null}
+              ) : (
+                <div className="text-center">
+                  <div className="w-32 h-32 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaExternalLink size={48} className="text-blue-500" />
+                  </div>
+                  <p className="text-gray-400 text-sm truncate max-w-md">Media: {mediaUrl}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -134,11 +239,11 @@ const PostDetail = () => {
                 {getStatusBadge()}
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                   <FaCalendar size={14} />
-                  {new Date(post.created_at).toLocaleString()}
+                  {new Date(post.created_at || post.createdAt || Date.now()).toLocaleString()}
                 </div>
               </div>
               <button
-                onClick={() => copyToClipboard(post.content)}
+                onClick={() => copyToClipboard(content)}
                 className="text-gray-400 hover:text-white transition-colors"
                 title="Copy content"
               >
@@ -148,21 +253,8 @@ const PostDetail = () => {
 
             <div className="mb-6">
               <p className="text-white text-lg leading-relaxed whitespace-pre-wrap">
-                {post.content}
+                {content || 'No content'}
               </p>
-            </div>
-
-            {/* Platforms */}
-            <div className="mb-6">
-              <h3 className="text-gray-400 text-sm font-medium mb-3">Posted to:</h3>
-              <div className="flex flex-wrap gap-3">
-                {post.platforms.map((platform) => (
-                  <div key={platform} className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded-lg">
-                    {platformIcons[platform]}
-                    <span className="text-white capitalize">{platform}</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Analytics */}
@@ -170,43 +262,46 @@ const PostDetail = () => {
               <div>
                 <h3 className="text-gray-400 text-sm font-medium mb-3">Analytics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {post.analytics.map((analytic, idx) => (
-                    <div key={idx} className="bg-gray-700/50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        {platformIcons[analytic.platform]}
-                        <span className="text-white font-medium capitalize">{analytic.platform}</span>
+                  {post.analytics.map((analytic, idx) => {
+                    const config = getPlatformDisplay(analytic.platform);
+                    return (
+                      <div key={idx} className="bg-gray-700/50 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          {config.icon}
+                          <span className={`font-medium capitalize ${config.color}`}>{config.name}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <FaEye size={14} />
+                            <span>Reach: {analytic.reach || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <FaChartLine size={14} />
+                            <span>Impressions: {analytic.impressions || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <FaHeart size={14} />
+                            <span>Likes: {analytic.likes || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <FaComment size={14} />
+                            <span>Comments: {analytic.comments || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <FaShare size={14} />
+                            <span>Shares: {analytic.shares || 0}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <FaEye size={14} />
-                          <span>Reach: {analytic.reach || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <FaChartLine size={14} />
-                          <span>Impressions: {analytic.impressions || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <FaHeart size={14} />
-                          <span>Likes: {analytic.likes || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <FaComment size={14} />
-                          <span>Comments: {analytic.comments || 0}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <FaShare size={14} />
-                          <span>Shares: {analytic.shares || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Timestamps */}
             <div className="mt-6 pt-4 border-t border-gray-700 text-xs text-gray-500">
-              <p>Created: {new Date(post.created_at).toLocaleString()}</p>
+              <p>Created: {new Date(post.created_at || post.createdAt || Date.now()).toLocaleString()}</p>
               {post.published_at && <p>Published: {new Date(post.published_at).toLocaleString()}</p>}
             </div>
           </div>
@@ -216,4 +311,4 @@ const PostDetail = () => {
   );
 };
 
-export default PostDetail;
+export default PostDetail; 

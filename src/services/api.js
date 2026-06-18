@@ -104,9 +104,7 @@ export const posts = {
     },
   }),
   
-  // FIXED: Send platforms as JSON string
   publishWithMedia: (formData) => {
-    // Make sure platforms is a JSON string before sending
     return api.post('/publish/upload-with-media', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

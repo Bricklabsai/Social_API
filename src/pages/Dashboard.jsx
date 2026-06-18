@@ -137,7 +137,7 @@ const Dashboard = () => {
 
     // Check if any selected platform supports the file type
     const hasVideoPlatform = selectedPlatforms.some(p => ['youtube'].includes(p));
-    const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram'].includes(p));
+    const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p));
 
     if (hasVideoPlatform && validVideoTypes.includes(file.type)) {
       isValid = true;
@@ -149,7 +149,7 @@ const Dashboard = () => {
       // Check what platforms are selected and suggest correct file type
       const suggestions = [];
       if (selectedPlatforms.some(p => ['youtube'].includes(p))) suggestions.push('YouTube: MP4, MOV, AVI, MKV, WEBM');
-      if (selectedPlatforms.some(p => ['facebook', 'instagram'].includes(p))) suggestions.push('Facebook/Instagram: JPEG, PNG, GIF, WEBP');
+      if (selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p))) suggestions.push('Facebook/Instagram/LinkedIn: JPEG, PNG, GIF, WEBP');
       
       errorMessage = `File type not supported for selected platforms.\n\nSupported formats:\n${suggestions.join('\n')}`;
     }
@@ -214,74 +214,74 @@ const Dashboard = () => {
     }
   };
 
-  // FILE UPLOAD PUBLISH (WITH IMAGE/VIDEO) - Uses the new endpoint
-const handleFileUpload = async () => {
-  if (!postContent.trim()) {
-    toast.error('Please enter content to post');
-    return;
-  }
-  if (selectedPlatforms.length === 0) {
-    toast.error('Please select at least one platform');
-    return;
-  }
-  if (!selectedFile) {
-    toast.error('Please select a file to upload');
-    return;
-  }
-
-  setUploading(true);
-  try {
-    const formData = new FormData();
-    
-    // FIXED: Explicitly convert to JSON string
-    formData.append('platforms', JSON.stringify(selectedPlatforms));
-    formData.append('content', postContent);
-    
-    const isVideo = selectedFile.type.startsWith('video/');
-    formData.append('media_type', isVideo ? 'video' : 'image');
-    formData.append('file', selectedFile);
-
-    console.log('📤 Sending FormData:');
-    console.log('  platforms:', JSON.stringify(selectedPlatforms));
-    console.log('  content:', postContent);
-    console.log('  media_type:', isVideo ? 'video' : 'image');
-    console.log('  file:', selectedFile.name);
-
-    const response = await posts.publishWithMedia(formData);
-    
-    const successCount = response.data.successful;
-    const totalCount = response.data.total_platforms;
-    
-    if (successCount === totalCount) {
-      toast.success(` Successfully published to ${totalCount} platform${totalCount > 1 ? 's' : ''}!`);
-      setPostContent('');
-      setSelectedPlatforms([]);
-      setSelectedFile(null);
-      const fileInput = document.getElementById('file-upload');
-      if (fileInput) fileInput.value = '';
-    } else if (successCount > 0) {
-      toast.warning(` Partially successful: ${successCount}/${totalCount} platforms`);
-      const failed = Object.entries(response.data.results || {})
-        .filter(([_, r]) => !r.success)
-        .map(([platform]) => platform);
-      if (failed.length > 0) {
-        toast.error(`Failed on: ${failed.join(', ')}`);
-      }
-    } else {
-      toast.error('Failed to publish. Check your platform connections.');
+  // FILE UPLOAD PUBLISH (WITH IMAGE/VIDEO)
+  const handleFileUpload = async () => {
+    if (!postContent.trim()) {
+      toast.error('Please enter content to post');
+      return;
     }
-    
-    fetchConnections();
-  } catch (error) {
-    console.error('Upload error:', error);
-    console.error('Error response:', error.response?.data);
-    toast.error(error.response?.data?.detail || 'Upload failed');
-  } finally {
-    setUploading(false);
-  }
-};
+    if (selectedPlatforms.length === 0) {
+      toast.error('Please select at least one platform');
+      return;
+    }
+    if (!selectedFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      
+      formData.append('platforms', JSON.stringify(selectedPlatforms));
+      formData.append('content', postContent);
+      
+      const isVideo = selectedFile.type.startsWith('video/');
+      formData.append('media_type', isVideo ? 'video' : 'image');
+      formData.append('file', selectedFile);
+
+      console.log('Sending FormData:');
+      console.log('  platforms:', JSON.stringify(selectedPlatforms));
+      console.log('  content:', postContent);
+      console.log('  media_type:', isVideo ? 'video' : 'image');
+      console.log('  file:', selectedFile.name);
+
+      const response = await posts.publishWithMedia(formData);
+      
+      const successCount = response.data.successful;
+      const totalCount = response.data.total_platforms;
+      
+      if (successCount === totalCount) {
+        toast.success(`Successfully published to ${totalCount} platform${totalCount > 1 ? 's' : ''}!`);
+        setPostContent('');
+        setSelectedPlatforms([]);
+        setSelectedFile(null);
+        const fileInput = document.getElementById('file-upload');
+        if (fileInput) fileInput.value = '';
+      } else if (successCount > 0) {
+        toast.warning(`Partially successful: ${successCount}/${totalCount} platforms`);
+        const failed = Object.entries(response.data.results || {})
+          .filter(([_, r]) => !r.success)
+          .map(([platform]) => platform);
+        if (failed.length > 0) {
+          toast.error(`Failed on: ${failed.join(', ')}`);
+        }
+      } else {
+        toast.error('Failed to publish. Check your platform connections.');
+      }
+      
+      fetchConnections();
+    } catch (error) {
+      console.error('Upload error:', error);
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.detail || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const isThreadMode = selectedPlatforms.includes('twitter') && selectedPlatforms.length === 1 && postContent.split('\n').filter(l => l.trim()).length > 1;
-  const hasImageSupport = selectedPlatforms.some(p => ['facebook', 'instagram'].includes(p));
+  const hasImageSupport = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin'].includes(p));
   const hasVideoSupport = selectedPlatforms.includes('youtube');
 
   const platformDisplayNames = {
@@ -294,10 +294,10 @@ const handleFileUpload = async () => {
   };
 
   const hasAnyConnection = Object.values(platformConnections).some(p => p?.connected);
-  const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram'].includes(p));
+  const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram', 'linkedin'].includes(p));
   
-  // Check if Instagram is selected (for showing special info)
   const hasInstagram = selectedPlatforms.includes('instagram');
+  const hasLinkedIn = selectedPlatforms.includes('linkedin');
 
   return (
     <Layout>
@@ -452,7 +452,7 @@ const handleFileUpload = async () => {
               </button>
               {hasInstagram && (
                 <p className="text-xs text-yellow-500 text-center mt-1">
-                  ⚠️ Instagram requires an image/video. Use the upload section below.
+                  Instagram requires an image/video. Use the upload section below.
                 </p>
               )}
               <p className="text-xs text-gray-500 text-center mt-1">
@@ -483,6 +483,12 @@ const handleFileUpload = async () => {
                     Instagram requires image/video for business posts
                   </span>
                 )}
+                {hasLinkedIn && (
+                  <span className="text-xs text-blue-400 ml-2 flex items-center gap-1">
+                    <FaInfoCircle size={12} />
+                    LinkedIn supports image uploads
+                  </span>
+                )}
               </label>
               
               <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${
@@ -509,6 +515,8 @@ const handleFileUpload = async () => {
                       ? 'MP4, MOV, AVI, MKV, WEBM (Max 128GB)' 
                       : hasInstagram && selectedPlatforms.length === 1
                       ? 'JPEG, PNG, GIF, WEBP (Max 8MB for Instagram)'
+                      : hasLinkedIn && selectedPlatforms.length === 1
+                      ? 'JPEG, PNG, GIF, WEBP (Max 10MB for LinkedIn)'
                       : 'JPEG, PNG, GIF, WEBP (Max 10MB)'}
                   </span>
                 </label>
@@ -543,13 +551,19 @@ const handleFileUpload = async () => {
               
               {!supportsFileUpload && selectedPlatforms.length > 0 && (
                 <p className="text-xs text-yellow-500 mt-2">
-                  Note: File upload is supported for YouTube (video), Facebook (image), and Instagram (image)
+                  Note: File upload is supported for YouTube (video), Facebook (image), Instagram (image), and LinkedIn (image)
                 </p>
               )}
               
               {hasInstagram && selectedPlatforms.length === 1 && selectedFile && (
                 <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
-                   Your image will be uploaded and posted to Instagram with the caption above
+                  Your image will be uploaded and posted to Instagram with the caption above
+                </p>
+              )}
+              
+              {hasLinkedIn && selectedPlatforms.length === 1 && selectedFile && (
+                <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
+                  Your image will be uploaded and posted to LinkedIn with the caption above
                 </p>
               )}
             </div>
