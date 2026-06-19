@@ -6,6 +6,8 @@ import {
   FiMessageSquare, FiSettings, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi';
 import { FaTwitter, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaWhatsapp } from 'react-icons/fa';
+import { FiMessageCircle } from 'react-icons/fi';
+
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -25,8 +27,10 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: FiGrid, label: 'Dashboard' },
     { path: '/posts', icon: FiBookOpen, label: 'Posts' },
     { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
+    { path: '/messages', icon: FiMessageCircle, label: 'Messages' }, 
     { path: '/comments', icon: FiMessageSquare, label: 'Comments' },
-    { path: '/settings', icon: FiSettings, label: 'Settings' },
+    { path: '/settings', icon: FiSettings, label: 'Settings' }, 
+    
   ];
 
   const platformIcons = {

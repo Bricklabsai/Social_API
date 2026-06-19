@@ -10,6 +10,9 @@ import Posts from './pages/Posts';
 import Analytics from './pages/Analytics';
 import PostDetail from './pages/PostDetail';
 import Comments from './pages/Comments';
+import Settings from './pages/Settings';
+import Layout from './components/Layout';
+import Messages from './pages/Messages';
 import './App.css';
 
 function App() {
@@ -21,13 +24,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+  path="/dashboard"
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="/posts"
             element={
@@ -45,6 +48,24 @@ function App() {
             }
           />
           <Route
+  path="/settings"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <Settings />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/messages"
+  element={
+    <ProtectedRoute>
+      <Messages />
+    </ProtectedRoute>
+  }
+/>          <Route
             path="/analytics"
             element={
               <ProtectedRoute>

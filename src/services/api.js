@@ -143,4 +143,39 @@ export const comments = {
   getPlatforms: () => api.get('/comments/platforms'),
 };
 
+
+// ============================================
+// MESSAGES API
+// ============================================
+export const messages = {
+  getMessages: (platform = null, limit = 50) => {
+    const params = new URLSearchParams();
+    if (platform && platform !== 'all') params.append('platform', platform);
+    params.append('limit', limit);
+    return api.get(`/messages?${params.toString()}`);
+  },
+  getPlatforms: () => api.get('/messages/platforms'),
+  getMessageDetail: (platform, messageId) => api.get(`/messages/${platform}/${messageId}`),
+  replyToMessage: (platform, message, recipientId = null) => {
+    return api.post(`/messages/${platform}/reply`, {
+      message: message,
+      recipient_id: recipientId
+    });
+  },
+};
+
+// In api.js, add settings endpoints
+
+// ============================================
+// SETTINGS API
+// ============================================
+export const settings = {
+  getProfile: () => api.get('/settings/profile'),
+  updateProfile: (data) => api.put('/settings/profile', data),
+  changePassword: (data) => api.post('/settings/change-password', data),
+  getApiKeys: () => api.get('/settings/api-keys'),
+  generateApiKey: () => api.post('/settings/api-keys/generate'),
+  revokeApiKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
+};
+
 export default api;
