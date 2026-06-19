@@ -104,6 +104,11 @@ const Login = () => {
             Create one
           </Link>
         </p>
+        <div className="text-center mt-4 text-xs text-gray-400">
+  <Link to="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</Link>
+  <span className="mx-2">•</span>
+  <Link to="/terms" className="hover:text-gray-600 transition-colors">Terms of Service</Link>
+</div>
       </div>
     </div>
   );

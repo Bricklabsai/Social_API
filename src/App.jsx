@@ -13,6 +13,8 @@ import Comments from './pages/Comments';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import Messages from './pages/Messages';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import './App.css';
 
 function App() {
@@ -23,6 +25,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route
   path="/dashboard"
   element={
@@ -51,9 +55,7 @@ function App() {
   path="/settings"
   element={
     <ProtectedRoute>
-      <Layout>
         <Settings />
-      </Layout>
     </ProtectedRoute>
   }
 />
