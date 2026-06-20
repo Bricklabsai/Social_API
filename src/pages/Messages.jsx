@@ -9,6 +9,64 @@ import { FiRefreshCw, FiMessageCircle, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { messages } from '../services/api';
 
+// Skeleton Components
+const MessageListSkeleton = () => (
+  <div className="flex flex-col w-full md:w-96 border-r border-gray-100 bg-gray-50/30">
+    <div className="p-4 border-b border-gray-100 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-6 bg-gray-200 rounded w-24 animate-pulse"></div>
+        <div className="h-5 bg-gray-200 rounded w-20 animate-pulse"></div>
+      </div>
+      <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+    </div>
+    <div className="p-3 border-b border-gray-100 bg-white flex gap-2">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-8 bg-gray-200 rounded-full w-16 animate-pulse"></div>
+      ))}
+    </div>
+    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-start gap-3 animate-pulse">
+          <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-gray-200 rounded w-32"></div>
+              <div className="h-3 bg-gray-200 rounded w-16"></div>
+            </div>
+            <div className="h-4 bg-gray-200 rounded w-48 mt-1"></div>
+            <div className="h-3 bg-gray-200 rounded w-20 mt-1"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ChatSkeleton = () => (
+  <div className="flex-1 flex flex-col bg-white">
+    <div className="p-4 border-b border-gray-100 bg-white flex items-center gap-3">
+      <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+      <div className="flex-1">
+        <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+        <div className="h-3 bg-gray-200 rounded w-20 animate-pulse mt-1"></div>
+      </div>
+    </div>
+    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+          <div className={`h-12 bg-gray-200 rounded-2xl w-3/4 animate-pulse ${i % 2 === 0 ? 'rounded-br-sm' : 'rounded-bl-sm'}`}></div>
+        </div>
+      ))}
+    </div>
+    <div className="p-4 border-t border-gray-100 bg-white">
+      <div className="flex gap-3">
+        <div className="flex-1 h-11 bg-gray-200 rounded-xl animate-pulse"></div>
+        <div className="w-11 h-11 bg-gray-200 rounded-xl animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+);
+
 const Messages = () => {
   const [messageList, setMessageList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +146,6 @@ const Messages = () => {
       
       if (response.data.success) {
         toast.success('Reply sent successfully!');
-        // Add the sent message to the conversation
         const newMessage = {
           id: `sent-${Date.now()}`,
           platform: selectedConversation.platform,
@@ -100,16 +157,12 @@ const Messages = () => {
           is_outgoing: true
         };
         
-        // Update the conversation with the new message
         const updatedConversation = {
           ...selectedConversation,
           messages: [...selectedConversation.messages, newMessage]
         };
         setSelectedConversation(updatedConversation);
-        
-        // Also update the message list
         setMessageList(prev => [...prev, newMessage]);
-        
         setReplyText('');
         await fetchMessages();
       } else {
@@ -163,7 +216,6 @@ const Messages = () => {
     whatsapp: 'bg-green-100 text-green-700',
   };
 
-  // Group messages by conversation (sender)
   const conversations = messageList.reduce((acc, msg) => {
     const key = `${msg.platform}-${msg.sender_id || msg.sender}`;
     if (!acc[key]) {
@@ -202,9 +254,9 @@ const Messages = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-        <FaSpinner className="animate-spin text-pink-400 text-4xl mb-4" />
-        <p className="text-gray-400">Loading your messages...</p>
+      <div className="min-h-screen bg-white flex h-[calc(100vh-80px)]">
+        <MessageListSkeleton />
+        <ChatSkeleton />
       </div>
     );
   }
@@ -218,10 +270,10 @@ const Messages = () => {
           <div className="p-4 border-b border-gray-100 bg-white">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <FiMessageCircle className="text-pink-400" />
+                <FiMessageCircle className="text-pink-600" />
                 Inbox
               </h2>
-              <span className="text-xs bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full">
+              <span className="text-xs bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">
                 {conversationList.length} conversations
               </span>
             </div>
@@ -234,7 +286,7 @@ const Messages = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search messages..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
@@ -245,7 +297,7 @@ const Messages = () => {
               onClick={() => handlePlatformFilter('all')}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 selectedPlatform === 'all'
-                  ? 'bg-gradient-to-r from-pink-400 to-blue-300 text-white'
+                  ? 'bg-linear-to-r from-pink-600 to-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -257,7 +309,7 @@ const Messages = () => {
                 onClick={() => handlePlatformFilter(platform.platform)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                   selectedPlatform === platform.platform
-                    ? 'bg-gradient-to-r from-pink-400 to-blue-300 text-white'
+                    ? 'bg-linear-to-r from-pink-600 to-blue-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -286,7 +338,7 @@ const Messages = () => {
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                       platformColors[conv.platform] || 'bg-gray-100'
                     }`}>
                       {platformIcons[conv.platform] || <FaUser className="text-gray-400" />}
@@ -297,7 +349,7 @@ const Messages = () => {
                         <span className="font-medium text-gray-800 text-sm truncate">
                           {conv.sender}
                         </span>
-                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                        <span className="text-xs text-gray-400 shrink-0 ml-2">
                           {formatDate(conv.last_message.created_at)}
                         </span>
                       </div>
@@ -306,7 +358,7 @@ const Messages = () => {
                           {conv.last_message.text || 'No message content'}
                         </p>
                         {conv.unread_count > 0 && (
-                          <span className="w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                          <span className="w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center shrink-0 ml-2">
                             {conv.unread_count}
                           </span>
                         )}
@@ -359,8 +411,6 @@ const Messages = () => {
               {/* Chat Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
                 {conversationMessages.map((msg, index) => {
-                  // Check if this is an outgoing message (sent by the current user)
-                  // We determine this by checking if the sender is "Me" or if the message has is_outgoing flag
                   const isOutgoing = msg.is_outgoing || msg.sender === 'Me' || msg.sender_id === 'me';
                   
                   return (
@@ -371,7 +421,7 @@ const Messages = () => {
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                           isOutgoing
-                            ? 'bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-br-sm shadow-md shadow-pink-200/30'
+                            ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-br-sm shadow-md shadow-pink-300/30'
                             : 'bg-white border border-gray-100 shadow-sm rounded-bl-sm'
                         }`}
                       >
@@ -404,7 +454,7 @@ const Messages = () => {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={`Reply to ${selectedConversation.sender}...`}
-                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent text-sm"
+                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -415,7 +465,7 @@ const Messages = () => {
                   <button
                     onClick={handleReply}
                     disabled={sendingReply || !replyText.trim()}
-                    className="w-11 h-11 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-xl flex items-center justify-center hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    className="w-11 h-11 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl flex items-center justify-center hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                   >
                     {sendingReply ? (
                       <FaSpinner className="animate-spin" size={18} />
@@ -427,10 +477,9 @@ const Messages = () => {
               </div>
             </>
           ) : (
-            // Empty State - No conversation selected
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
-                <FiMessageCircle size={40} className="text-pink-400" />
+              <div className="w-20 h-20 bg-linear-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
+                <FiMessageCircle size={40} className="text-pink-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-700">Your Messages</h3>
               <p className="text-sm text-gray-400 text-center max-w-sm mt-1">

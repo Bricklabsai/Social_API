@@ -18,6 +18,28 @@ const platformIcons = {
   whatsapp: <FaWhatsapp className="text-green-500" size={28} />,
 };
 
+// Skeleton Components
+const PlatformCardSkeleton = () => (
+  <div className="bg-white rounded-xl p-4 text-center border border-gray-100 animate-pulse">
+    <div className="flex justify-center mb-3">
+      <div className="w-7 h-7 bg-gray-200 rounded-full"></div>
+    </div>
+    <div className="h-5 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
+    <div className="h-8 bg-gray-200 rounded w-full"></div>
+  </div>
+);
+
+const StatsSkeleton = () => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="text-center p-4 bg-linear-to-br from-gray-50 to-gray-100 rounded-xl animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-12 mx-auto mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+      </div>
+    ))}
+  </div>
+);
+
 const Dashboard = () => {
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
@@ -136,7 +158,6 @@ const Dashboard = () => {
     let isValid = false;
     let errorMessage = '';
 
-    // Check if any selected platform supports the file type
     const hasVideoPlatform = selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p));
     const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
 
@@ -306,13 +327,10 @@ const Dashboard = () => {
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm text-gray-500">Connected Platforms</p>
-                <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">
-                  {connectedCount}/6
+                <p className="text-2xl font-bold bg-linear-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
+                  {loading ? '...' : `${connectedCount}/6`}
                 </p>
               </div>
-              {/* <div className="w-12 h-12 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200/50">
-                <span className="text-white font-bold text-xl">S</span>
-              </div> */}
             </div>
           </div>
         </div>
@@ -321,64 +339,67 @@ const Dashboard = () => {
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Social Platforms</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
-              const connection = platformConnections[platform];
-              const isConnected = connection?.connected;
-              const isInProgress = actionInProgress === platform;
-              const displayName = platformDisplayNames[platform];
-              
-              return (
-                <div
-                  key={platform}
-                  className={`bg-white rounded-xl p-4 text-center transition-all duration-300 border ${
-                    isConnected 
-                      ? 'border-pink-200 shadow-md shadow-pink-100/50' 
-                      : 'border-gray-100 hover:shadow-md hover:shadow-gray-100/50'
-                  }`}
-                >
-                  <div className="flex justify-center mb-3">
-                    {platformIcons[platform]}
-                  </div>
-                  <p className={`font-medium mb-2 ${isConnected ? 'text-gray-800' : 'text-gray-500'}`}>{displayName}</p>
-                  
-                  {loading ? (
-                    <FaSpinner className="animate-spin mx-auto text-pink-400" />
-                  ) : isConnected ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-center gap-1 text-pink-500 text-xs">
-                        <FaCheckCircle size={12} />
-                        <span>Connected</span>
-                      </div>
-                      <button
-                        onClick={() => handleDisconnect(platform)}
-                        disabled={isInProgress}
-                        className="w-full px-3 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-                      >
-                        {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaUnlink size={10} />}
-                        Disconnect
-                      </button>
+            {loading ? (
+              // Show 6 skeleton cards while loading
+              Array.from({ length: 6 }).map((_, i) => <PlatformCardSkeleton key={i} />)
+            ) : (
+              ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
+                const connection = platformConnections[platform];
+                const isConnected = connection?.connected;
+                const isInProgress = actionInProgress === platform;
+                const displayName = platformDisplayNames[platform];
+                
+                return (
+                  <div
+                    key={platform}
+                    className={`bg-white rounded-xl p-4 text-center transition-all duration-300 border ${
+                      isConnected 
+                        ? 'border-pink-300 shadow-md shadow-pink-200/50' 
+                        : 'border-gray-100 hover:shadow-md hover:shadow-gray-100/50'
+                    }`}
+                  >
+                    <div className="flex justify-center mb-3">
+                      {platformIcons[platform]}
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => handleConnect(platform)}
-                      disabled={isInProgress}
-                      className="w-full px-3 py-1.5 text-xs bg-gradient-to-r from-pink-400/20 via-pink-300/20 to-blue-300/20 hover:from-pink-400/30 hover:via-pink-300/30 hover:to-blue-300/30 text-pink-600 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-                    >
-                      {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaPlug size={10} />}
-                      Connect
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                    <p className={`font-medium mb-2 ${isConnected ? 'text-gray-800' : 'text-gray-500'}`}>{displayName}</p>
+                    
+                    {isConnected ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-1 text-pink-600 text-xs">
+                          <FaCheckCircle size={12} />
+                          <span>Connected</span>
+                        </div>
+                        <button
+                          onClick={() => handleDisconnect(platform)}
+                          disabled={isInProgress}
+                          className="w-full px-3 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                        >
+                          {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaUnlink size={10} />}
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleConnect(platform)}
+                        disabled={isInProgress}
+                        className="w-full px-3 py-1.5 text-xs bg-linear-to-r from-pink-600/20 via-pink-500/20 to-blue-600/20 hover:from-pink-600/30 hover:via-pink-500/30 hover:to-blue-600/30 text-pink-700 rounded-md transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+                      >
+                        {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaPlug size={10} />}
+                        Connect
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* Publish Card */}
-        {hasAnyConnection && (
+        {!loading && hasAnyConnection && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FiSend className="text-pink-400" />
+              <FiSend className="text-pink-600" />
               Create Post
             </h2>
             
@@ -399,7 +420,7 @@ const Dashboard = () => {
                       onClick={() => handlePlatformToggle(platform)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                         isSelected 
-                          ? 'bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white shadow-md shadow-pink-200/50' 
+                          ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
@@ -425,7 +446,7 @@ const Dashboard = () => {
               <textarea
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
                 rows={isThreadMode ? 6 : 4}
                 placeholder="What's on your mind?"
               />
@@ -439,7 +460,7 @@ const Dashboard = () => {
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                   hasInstagram 
                     ? 'bg-gray-100 cursor-not-allowed text-gray-400' 
-                    : 'bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white hover:shadow-lg hover:shadow-pink-200/50'
+                    : 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white hover:shadow-lg hover:shadow-pink-300/50'
                 }`}
               >
                 {publishing ? <FaSpinner className="animate-spin" /> : <FiSend />}
@@ -461,7 +482,7 @@ const Dashboard = () => {
                       htmlFor="file-upload"
                       className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 border-2 border-dashed ${
                         supportsFileUpload 
-                          ? 'border-pink-300 text-pink-600 hover:bg-pink-50 cursor-pointer' 
+                          ? 'border-pink-400 text-pink-700 hover:bg-pink-50 cursor-pointer' 
                           : 'border-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -473,7 +494,7 @@ const Dashboard = () => {
                   <button
                     onClick={handleFileUpload}
                     disabled={uploading || selectedPlatforms.length === 0 || !postContent.trim() || !selectedFile}
-                    className="flex-1 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {uploading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
                     {uploading ? 'Uploading...' : 'Publish with Media'}
@@ -485,7 +506,7 @@ const Dashboard = () => {
         )}
 
         {/* No Connections Message */}
-        {!hasAnyConnection && !loading && (
+        {!loading && !hasAnyConnection && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
             <div className="text-gray-200 mb-3">
               <FaPlug size={48} className="mx-auto" />
@@ -498,26 +519,30 @@ const Dashboard = () => {
         {/* Quick Stats */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">Quick Stats</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
-              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">
-                {connectedCount}
-              </p>
-              <p className="text-sm text-gray-500">Connected Platforms</p>
+          {loading ? (
+            <StatsSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-linear-to-br from-pink-100 to-blue-100 rounded-xl">
+                <p className="text-2xl font-bold bg-linear-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
+                  {connectedCount}
+                </p>
+                <p className="text-sm text-gray-600">Connected Platforms</p>
+              </div>
+              <div className="text-center p-4 bg-linear-to-br from-pink-100 to-blue-100 rounded-xl">
+                <p className="text-2xl font-bold bg-linear-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">—</p>
+                <p className="text-sm text-gray-600">Posts Today</p>
+              </div>
+              <div className="text-center p-4 bg-linear-to-br from-pink-100 to-blue-100 rounded-xl">
+                <p className="text-2xl font-bold bg-linear-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">—</p>
+                <p className="text-sm text-gray-600">Total Reach</p>
+              </div>
+              <div className="text-center p-4 bg-linear-to-br from-pink-100 to-blue-100 rounded-xl">
+                <p className="text-2xl font-bold bg-linear-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">—</p>
+                <p className="text-sm text-gray-600">Engagement</p>
+              </div>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
-              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
-              <p className="text-sm text-gray-500">Posts Today</p>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
-              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
-              <p className="text-sm text-gray-500">Total Reach</p>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-blue-50 rounded-xl">
-              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-300 bg-clip-text text-transparent">—</p>
-              <p className="text-sm text-gray-500">Engagement</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -31,9 +31,9 @@ const Login = () => {
         <div className="flex justify-center mb-6">
           <div className="relative">
             {/* Glow effect behind logo */}
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-2xl blur-xl opacity-30 animate-pulse"></div>
+            <div className="absolute inset-0 bg-linear-to-br from-pink-500 via-pink-400 to-blue-500 rounded-2xl blur-xl opacity-30 animate-pulse"></div>
             {/* Logo container */}
-            <div className="relative w-24 h-24 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50 transition-all hover:scale-105 duration-300 overflow-hidden">
+            <div className="relative w-24 h-24 bg-linear-to-br from-pink-400 via-pink-300 to-blue-300 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/50 transition-all hover:scale-105 duration-300 overflow-hidden">
               {/* Custom Logo Image - Replace with your logo */}
               <img 
                 src="/logo.png" 
@@ -85,7 +85,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white py-3 rounded-lg font-semibold hover:opacity-90 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-linear-to-r from-pink-400 via-pink-300 to-blue-300 text-white py-3 rounded-lg font-semibold hover:opacity-90 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

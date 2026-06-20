@@ -7,9 +7,74 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
+// Skeleton Component
+const SettingsSkeleton = () => (
+  <div className="space-y-6">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-5 h-5 bg-gray-200 rounded"></div>
+        <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-24 mb-2 animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+        </div>
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-24 mb-2 animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+        </div>
+      </div>
+      <div className="h-10 bg-gray-200 rounded-lg w-32 mt-4 animate-pulse"></div>
+    </div>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-5 h-5 bg-gray-200 rounded"></div>
+        <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i}>
+            <div className="h-4 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        ))}
+      </div>
+      <div className="h-10 bg-gray-200 rounded-lg w-40 mt-4 animate-pulse"></div>
+    </div>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-gray-200 rounded"></div>
+          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+        </div>
+        <div className="h-10 bg-gray-200 rounded-lg w-40 animate-pulse"></div>
+      </div>
+      <div className="space-y-3">
+        {[1, 2].map((i) => (
+          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
+              <div>
+                <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                <div className="h-3 bg-gray-200 rounded w-40 animate-pulse mt-1"></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-5 bg-gray-200 rounded-full w-16 animate-pulse"></div>
+              <div className="w-5 h-5 bg-gray-200 rounded"></div>
+              <div className="w-5 h-5 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const Settings = () => {
   const { user, updateUser } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Profile state
@@ -43,6 +108,8 @@ const Settings = () => {
       setApiKeys(response.data.keys || []);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,6 +188,23 @@ const Settings = () => {
     toast.success('Copied to clipboard!');
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="h-9 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded w-64 animate-pulse mt-1"></div>
+            </div>
+            <div className="w-12 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+          </div>
+          <SettingsSkeleton />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="max-w-4xl mx-auto">
@@ -130,7 +214,7 @@ const Settings = () => {
             <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
             <p className="text-gray-500 mt-1">Manage your account and security preferences</p>
           </div>
-          <div className="w-12 h-12 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200/50">
+          <div className="w-12 h-12 bg-linear-to-br from-pink-600 via-pink-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-300/50">
             <FiShield size={24} className="text-white" />
           </div>
         </div>
@@ -139,7 +223,7 @@ const Settings = () => {
           {/* Profile Section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
-              <FiUser className="text-pink-400" />
+              <FiUser className="text-pink-600" />
               Profile Information
             </h2>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -150,7 +234,7 @@ const Settings = () => {
                     type="text"
                     value={profile.full_name}
                     onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
                     required
                   />
                 </div>
@@ -160,7 +244,7 @@ const Settings = () => {
                     type="email"
                     value={profile.email}
                     onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
                     required
                   />
                 </div>
@@ -168,7 +252,7 @@ const Settings = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50"
+                className="px-6 py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50"
               >
                 {saving ? <FiRefreshCw className="animate-spin inline" /> : 'Save Changes'}
               </button>
@@ -178,7 +262,7 @@ const Settings = () => {
           {/* Password Section */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
-              <FiLock className="text-pink-400" />
+              <FiLock className="text-pink-600" />
               Change Password
             </h2>
             <form onSubmit={handleChangePassword} className="space-y-4">
@@ -189,7 +273,7 @@ const Settings = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password.current}
                     onChange={(e) => setPassword({ ...password, current: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
                     required
                   />
                 </div>
@@ -200,7 +284,7 @@ const Settings = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={password.new}
                       onChange={(e) => setPassword({ ...password, new: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
                       required
                     />
                     <button
@@ -218,7 +302,7 @@ const Settings = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password.confirm}
                     onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-50/50 hover:bg-white transition-all"
                     required
                   />
                 </div>
@@ -226,7 +310,7 @@ const Settings = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50"
+                className="px-6 py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50"
               >
                 {saving ? <FiRefreshCw className="animate-spin inline" /> : 'Change Password'}
               </button>
@@ -237,13 +321,13 @@ const Settings = () => {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <FiKey className="text-pink-400" />
+                <FiKey className="text-pink-600" />
                 API Keys
               </h2>
               <button
                 onClick={handleGenerateKey}
                 disabled={generatingKey}
-                className="px-4 py-2 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-300 disabled:opacity-50 text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50 text-sm flex items-center gap-2"
               >
                 {generatingKey ? <FiRefreshCw className="animate-spin" /> : <FiKey size={16} />}
                 Generate New Key
@@ -257,13 +341,13 @@ const Settings = () => {
                   ⚠️ Save your secret key now. It won't be shown again!
                 </p>
                 <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
+                  <div className="flex-1 min-w-50">
                     <p className="text-xs text-gray-500">Public Key</p>
                     <code className="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 block truncate">
                       {newKey.public_key}
                     </code>
                   </div>
-                  <div className="flex-1 min-w-[200px]">
+                  <div className="flex-1 min-w-50">
                     <p className="text-xs text-gray-500">Secret Key</p>
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 block truncate flex-1">
@@ -277,7 +361,7 @@ const Settings = () => {
                       </button>
                       <button
                         onClick={() => copyToClipboard(newKey.secret_key)}
-                        className="text-pink-400 hover:text-pink-500"
+                        className="text-pink-600 hover:text-pink-700"
                       >
                         <FiCopy size={16} />
                       </button>
@@ -328,7 +412,7 @@ const Settings = () => {
                       )}
                       <button
                         onClick={() => copyToClipboard(key.public_key)}
-                        className="text-gray-400 hover:text-pink-400 transition-colors"
+                        className="text-gray-400 hover:text-pink-600 transition-colors"
                         title="Copy public key"
                       >
                         <FiCopy size={16} />

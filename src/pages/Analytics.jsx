@@ -9,6 +9,72 @@ import {
 import { FaYoutube, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
+// Skeleton Components
+const StatCardSkeleton = () => (
+  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 animate-pulse">
+    <div className="flex items-center justify-between mb-2">
+      <div className="w-6 h-6 bg-gray-200 rounded"></div>
+      <div className="h-3 bg-gray-200 rounded w-12"></div>
+    </div>
+    <div className="h-8 bg-gray-200 rounded w-20 mb-1"></div>
+    <div className="h-4 bg-gray-200 rounded w-16"></div>
+  </div>
+);
+
+const PlatformBreakdownSkeleton = () => (
+  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+    <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-100 animate-pulse">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+            <div className="h-5 bg-gray-200 rounded w-20"></div>
+            <div className="h-4 bg-gray-200 rounded w-12 ml-auto"></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j}>
+                <div className="h-3 bg-gray-200 rounded w-10"></div>
+                <div className="h-5 bg-gray-200 rounded w-16 mt-1"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const RecentPostsSkeleton = () => (
+  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="h-6 bg-gray-200 rounded w-40 mb-4 animate-pulse"></div>
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-gray-50 rounded-lg p-4 animate-pulse">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+                <div className="flex gap-2">
+                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+              <div className="h-8 bg-gray-200 rounded-lg w-20"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const Analytics = () => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -139,11 +205,33 @@ const Analytics = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center animate-pulse">
-          <FiActivity className="animate-spin text-pink-500 text-3xl" />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
+            <div>
+              <div className="h-9 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded w-64 mt-1 animate-pulse"></div>
+            </div>
+            <div className="h-11 bg-gray-200 rounded-xl w-32 animate-pulse mt-4 sm:mt-0"></div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            {[1, 2, 3, 4, 5].map((i) => <StatCardSkeleton key={i} />)}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm animate-pulse">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                  <div className="h-5 bg-gray-200 rounded w-32"></div>
+                </div>
+                <div className="h-8 bg-gray-200 rounded w-24 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+              </div>
+            ))}
+          </div>
+          <PlatformBreakdownSkeleton />
+          <RecentPostsSkeleton />
         </div>
-        <p className="text-gray-400 mt-4 font-medium">Loading analytics data...</p>
       </div>
     );
   }
@@ -155,7 +243,7 @@ const Analytics = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <FiBarChart2 className="text-pink-500" size={28} />
+              <FiBarChart2 className="text-pink-600" size={28} />
               Analytics
             </h1>
             <p className="text-gray-500 mt-1 flex items-center gap-2">
@@ -168,7 +256,7 @@ const Analytics = () => {
           <button
             onClick={refreshAnalytics}
             disabled={refreshing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-400 via-pink-300 to-blue-300 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50 mt-4 sm:mt-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 mt-4 sm:mt-0"
           >
             <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
             Refresh
@@ -193,7 +281,7 @@ const Analytics = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
-              <FiBarChart2 className="text-pink-400" size={18} />
+              <FiBarChart2 className="text-pink-600" size={18} />
               <h3 className="text-gray-700 font-medium">Total Engagement</h3>
             </div>
             <p className="text-2xl font-bold text-gray-800">{getTotalEngagement().toLocaleString()}</p>
@@ -201,7 +289,7 @@ const Analytics = () => {
           </div>
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
-              <FiTrendingUp className="text-green-400" size={18} />
+              <FiTrendingUp className="text-green-500" size={18} />
               <h3 className="text-gray-700 font-medium">Avg. per Post</h3>
             </div>
             <p className="text-2xl font-bold text-gray-800">{getAverageEngagement().toLocaleString()}</p>
@@ -209,7 +297,7 @@ const Analytics = () => {
           </div>
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
-              <FiCalendar className="text-purple-400" size={18} />
+              <FiCalendar className="text-purple-500" size={18} />
               <h3 className="text-gray-700 font-medium">Total Posts</h3>
             </div>
             <p className="text-2xl font-bold text-gray-800">{summary?.total_posts || 0}</p>
@@ -221,7 +309,7 @@ const Analytics = () => {
         {summary?.platform_stats && Object.keys(summary.platform_stats).length > 0 && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <FiActivity className="text-pink-400" size={18} />
+              <FiActivity className="text-pink-600" size={18} />
               Platform Breakdown
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -261,7 +349,7 @@ const Analytics = () => {
         {/* Recent Posts */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <FiCalendar className="text-pink-400" size={18} />
+            <FiCalendar className="text-pink-600" size={18} />
             Recent Posts
           </h2>
           {recentPosts.length === 0 ? (
@@ -307,7 +395,7 @@ const Analytics = () => {
                           e.stopPropagation();
                           viewPostAnalytics(post.id);
                         }}
-                        className="text-pink-500 hover:text-pink-600 text-sm font-medium transition-colors px-3 py-1 rounded-lg hover:bg-pink-50"
+                        className="text-pink-600 hover:text-pink-700 text-sm font-medium transition-colors px-3 py-1 rounded-lg hover:bg-pink-50"
                       >
                         View Stats
                       </button>
@@ -325,7 +413,7 @@ const Analytics = () => {
             <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <FiBarChart2 className="text-pink-400" size={20} />
+                  <FiBarChart2 className="text-pink-600" size={20} />
                   Post Analytics
                 </h3>
                 <button onClick={() => setPostAnalytics(null)} className="text-gray-400 hover:text-gray-600 transition-colors text-2xl w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">✕</button>
