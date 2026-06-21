@@ -3,7 +3,7 @@ import {
   FaTwitter, FaInstagram, FaFacebook, FaWhatsapp,
   FaEnvelope, FaUser, FaClock, FaSpinner,
   FaInbox, FaPaperPlane, FaCheckCircle, FaReply,
-  FaArrowLeft, FaCheckDouble
+  FaArrowLeft, FaCheckDouble, FaTrash
 } from 'react-icons/fa';
 import { FiRefreshCw, FiMessageCircle, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -125,6 +125,26 @@ const Messages = () => {
     fetchMessages();
   };
 
+  const handleDeleteConversation = async (conversationId) => {
+    if (!window.confirm('Delete this conversation? This will permanently remove all messages from this chat.')) {
+      return;
+    }
+
+    try {
+      await messages.deleteConversation(conversationId);
+      setMessageList(prev => prev.filter(msg => {
+        // Delete messages that match the conversation ID
+        const msgConvId = msg.conversation_id || `${msg.platform}-${msg.sender_id || msg.recipient_id}`;
+        return msgConvId !== conversationId;
+      }));
+      setSelectedConversation(null);
+      toast.success('Conversation deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete conversation');
+    }
+  };
+
   const handleReply = async () => {
     if (!replyText.trim()) {
       toast.error('Please enter a reply');
@@ -141,25 +161,31 @@ const Messages = () => {
       const response = await messages.replyToMessage(
         selectedConversation.platform,
         replyText.trim(),
-        selectedConversation.sender_id || selectedConversation.id
+        selectedConversation.sender_id
       );
       
       if (response.data.success) {
         toast.success('Reply sent successfully!');
+        
         const newMessage = {
           id: `sent-${Date.now()}`,
           platform: selectedConversation.platform,
           sender: 'Me',
           sender_id: 'me',
+          recipient_id: selectedConversation.sender_id,
           text: replyText.trim(),
           created_at: new Date().toISOString(),
           is_read: true,
-          is_outgoing: true
+          is_outgoing: true,
+          conversation_id: selectedConversation.id,
+          platform_name: selectedConversation.platform_name,
+          platform_icon: selectedConversation.platform_icon
         };
         
         const updatedConversation = {
           ...selectedConversation,
-          messages: [...selectedConversation.messages, newMessage]
+          messages: [...selectedConversation.messages, newMessage],
+          last_message: newMessage
         };
         setSelectedConversation(updatedConversation);
         setMessageList(prev => [...prev, newMessage]);
@@ -216,14 +242,52 @@ const Messages = () => {
     whatsapp: 'bg-green-100 text-green-700',
   };
 
+  // FIXED: Better conversation grouping with no duplicates
   const conversations = messageList.reduce((acc, msg) => {
-    const key = `${msg.platform}-${msg.sender_id || msg.sender}`;
-    if (!acc[key]) {
-      acc[key] = {
-        id: key,
+    // Skip self-messages
+    if (msg.sender === 'Me' && !msg.recipient_id) {
+      return acc;
+    }
+    
+    // Get or create conversation key
+    let conversationKey = msg.conversation_id;
+    
+    if (!conversationKey) {
+      // Create a consistent key based on the other party
+      const otherPartyId = msg.is_outgoing ? msg.recipient_id : msg.sender_id;
+      if (!otherPartyId || otherPartyId === 'me' || otherPartyId === 'Me') {
+        return acc;
+      }
+      conversationKey = `${msg.platform}-${otherPartyId}`;
+    }
+    
+    // Skip self conversations
+    if (conversationKey.includes('-me') || conversationKey.includes('-Me')) {
+      return acc;
+    }
+    
+    // Check if this conversation already exists
+    if (!acc[conversationKey]) {
+      // Determine the other party
+      let otherPartyName = msg.sender;
+      let otherPartyId = msg.sender_id;
+      
+      if (msg.is_outgoing) {
+        otherPartyName = msg.recipient_name || msg.recipient_id || 'Unknown';
+        otherPartyId = msg.recipient_id;
+      }
+      
+      // Skip if the other party is "Me"
+      if (otherPartyName === 'Me' || otherPartyName === 'me' || otherPartyId === 'me') {
+        return acc;
+      }
+      
+      acc[conversationKey] = {
+        id: conversationKey,
         platform: msg.platform,
-        sender: msg.sender,
-        sender_id: msg.sender_id || msg.id,
+        sender: otherPartyName,
+        sender_id: otherPartyId,
+        recipient_id: msg.recipient_id,
         messages: [],
         last_message: msg,
         platform_name: msg.platform_name,
@@ -231,19 +295,42 @@ const Messages = () => {
         unread_count: 0
       };
     }
-    acc[key].messages.push(msg);
-    if (!msg.is_read) {
-      acc[key].unread_count += 1;
+    
+    // Add message to conversation
+    acc[conversationKey].messages.push(msg);
+    
+    // Count unread (only incoming)
+    if (!msg.is_read && !msg.is_outgoing) {
+      acc[conversationKey].unread_count += 1;
     }
-    acc[key].messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    // Sort messages
+    acc[conversationKey].messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    // Update last message
+    if (new Date(msg.created_at) > new Date(acc[conversationKey].last_message.created_at)) {
+      acc[conversationKey].last_message = msg;
+    }
+    
     return acc;
   }, {});
 
+  // Convert to array and sort
   const conversationList = Object.values(conversations).sort((a, b) => {
     return new Date(b.last_message.created_at) - new Date(a.last_message.created_at);
   });
 
-  const filteredConversations = conversationList.filter(conv => 
+  // Filter out self conversations
+  const filteredConversationsList = conversationList.filter(conv => 
+    conv.sender !== 'Me' && 
+    conv.sender !== 'me' &&
+    conv.sender_id !== 'me' &&
+    !conv.id.includes('-me') &&
+    !conv.id.includes('-Me')
+  );
+
+  // Apply search filter
+  const filteredConversations = filteredConversationsList.filter(conv => 
     conv.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.messages.some(m => m.text.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -274,7 +361,7 @@ const Messages = () => {
                 Inbox
               </h2>
               <span className="text-xs bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">
-                {conversationList.length} conversations
+                {filteredConversations.length} conversations
               </span>
             </div>
             
@@ -301,7 +388,7 @@ const Messages = () => {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              All ({conversationList.length})
+              All ({filteredConversations.length})
             </button>
             {platforms.map((platform) => (
               <button
@@ -329,46 +416,56 @@ const Messages = () => {
               </div>
             ) : (
               filteredConversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelectedConversation(conv)}
-                  className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-all text-left ${
-                    selectedConversation?.id === conv.id ? 'bg-pink-50' : 'bg-white'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      platformColors[conv.platform] || 'bg-gray-100'
-                    }`}>
-                      {platformIcons[conv.platform] || <FaUser className="text-gray-400" />}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-800 text-sm truncate">
-                          {conv.sender}
-                        </span>
-                        <span className="text-xs text-gray-400 shrink-0 ml-2">
-                          {formatDate(conv.last_message.created_at)}
-                        </span>
+                <div key={conv.id} className="relative group">
+                  <button
+                    onClick={() => setSelectedConversation(conv)}
+                    className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-all text-left ${
+                      selectedConversation?.id === conv.id ? 'bg-pink-50' : 'bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        platformColors[conv.platform] || 'bg-gray-100'
+                      }`}>
+                        {platformIcons[conv.platform] || <FaUser className="text-gray-400" />}
                       </div>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <p className="text-sm text-gray-500 truncate">
-                          {conv.last_message.text || 'No message content'}
-                        </p>
-                        {conv.unread_count > 0 && (
-                          <span className="w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center shrink-0 ml-2">
-                            {conv.unread_count}
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-800 text-sm truncate">
+                            {conv.sender}
                           </span>
-                        )}
+                          <span className="text-xs text-gray-400 shrink-0 ml-2">
+                            {formatDate(conv.last_message.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <p className="text-sm text-gray-500 truncate">
+                            {conv.last_message.text || 'No message content'}
+                          </p>
+                          {conv.unread_count > 0 && (
+                            <span className="w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center shrink-0 ml-2">
+                              {conv.unread_count}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${platformBadgeColors[conv.platform] || 'bg-gray-100 text-gray-600'}`}>
+                          {conv.platform_name}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${platformBadgeColors[conv.platform] || 'bg-gray-100 text-gray-600'}`}>
-                        {conv.platform_name}
-                      </span>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conv.id);
+                    }}
+                    className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    title="Delete conversation"
+                  >
+                    <FaTrash size={14} />
+                  </button>
+                </div>
               ))
             )}
           </div>
@@ -399,13 +496,22 @@ const Messages = () => {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDeleteConversation(selectedConversation.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete conversation"
+                  >
+                    <FaTrash size={16} />
+                  </button>
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Chat Messages */}
@@ -427,7 +533,7 @@ const Messages = () => {
                       >
                         {!isOutgoing && (
                           <p className="text-xs font-medium text-gray-600 mb-1">
-                            {msg.sender}
+                            {msg.sender || 'Unknown'}
                           </p>
                         )}
                         <p className={`text-sm ${isOutgoing ? 'text-white' : 'text-gray-800'}`}>

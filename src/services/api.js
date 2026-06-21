@@ -143,7 +143,6 @@ export const comments = {
   getPlatforms: () => api.get('/comments/platforms'),
 };
 
-
 // ============================================
 // MESSAGES API
 // ============================================
@@ -162,7 +161,14 @@ export const messages = {
       recipient_id: recipientId
     });
   },
+  // ADD THIS NEW METHOD
+  deleteConversation: (conversationId) => {
+    return api.delete(`/messages/conversation/${conversationId}`);
+  },
 };
+
+
+
 
 // In api.js, add settings endpoints
 
