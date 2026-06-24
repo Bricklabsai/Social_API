@@ -90,6 +90,43 @@ const Messages = () => {
     }
   }, [selectedConversation]);
 
+  // Add this after your existing useEffects
+useEffect(() => {
+  // Poll for new messages every 10 seconds
+  const interval = setInterval(async () => {
+    if (!loading && !refreshing) {
+      try {
+        const response = await messages.getMessages(selectedPlatform);
+        const newMessages = response.data.messages || [];
+        
+        if (newMessages.length > messageList.length) {
+          setMessageList(newMessages);
+          
+          // Update conversation if we're in one
+          if (selectedConversation) {
+            const updated = newMessages.filter(m => 
+              m.conversation_id === selectedConversation.id || 
+              m.sender_id === selectedConversation.sender_id
+            );
+            if (updated.length > selectedConversation.messages.length) {
+              updated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+              setSelectedConversation({
+                ...selectedConversation,
+                messages: updated,
+                last_message: updated[updated.length - 1]
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    }
+  }, 10000); // 10 seconds
+  
+  return () => clearInterval(interval);
+}, [messageList.length, selectedConversation, loading, refreshing, selectedPlatform]);
+
   const fetchMessages = async () => {
     try {
       setLoading(true);
@@ -133,7 +170,6 @@ const Messages = () => {
     try {
       await messages.deleteConversation(conversationId);
       setMessageList(prev => prev.filter(msg => {
-        // Delete messages that match the conversation ID
         const msgConvId = msg.conversation_id || `${msg.platform}-${msg.sender_id || msg.recipient_id}`;
         return msgConvId !== conversationId;
       }));
@@ -146,61 +182,98 @@ const Messages = () => {
   };
 
   const handleReply = async () => {
-    if (!replyText.trim()) {
-      toast.error('Please enter a reply');
-      return;
-    }
+  if (!replyText.trim()) {
+    toast.error('Please enter a reply');
+    return;
+  }
 
-    if (!selectedConversation) {
-      toast.error('No conversation selected');
-      return;
-    }
+  if (!selectedConversation) {
+    toast.error('No conversation selected');
+    return;
+  }
 
-    setSendingReply(true);
-    try {
-      const response = await messages.replyToMessage(
-        selectedConversation.platform,
-        replyText.trim(),
-        selectedConversation.sender_id
+  setSendingReply(true);
+  try {
+    // Use the sender_id as the recipient (the person we're replying to)
+    // If sender_id is 'me' or undefined, use the conversation ID
+    let recipientId = selectedConversation.sender_id;
+    
+    // If the sender is 'Me' or 'me', we need to find the other party
+    if (recipientId === 'me' || recipientId === 'Me' || !recipientId) {
+      // Find the other person in the conversation
+      const otherPerson = selectedConversation.messages.find(
+        msg => msg.sender_id !== 'me' && msg.sender_id !== 'Me'
       );
-      
-      if (response.data.success) {
-        toast.success('Reply sent successfully!');
-        
-        const newMessage = {
-          id: `sent-${Date.now()}`,
-          platform: selectedConversation.platform,
-          sender: 'Me',
-          sender_id: 'me',
-          recipient_id: selectedConversation.sender_id,
-          text: replyText.trim(),
-          created_at: new Date().toISOString(),
-          is_read: true,
-          is_outgoing: true,
-          conversation_id: selectedConversation.id,
-          platform_name: selectedConversation.platform_name,
-          platform_icon: selectedConversation.platform_icon
-        };
-        
-        const updatedConversation = {
-          ...selectedConversation,
-          messages: [...selectedConversation.messages, newMessage],
-          last_message: newMessage
-        };
-        setSelectedConversation(updatedConversation);
-        setMessageList(prev => [...prev, newMessage]);
-        setReplyText('');
-        await fetchMessages();
+      if (otherPerson) {
+        recipientId = otherPerson.sender_id;
       } else {
-        toast.error(response.data.error || 'Failed to send reply');
+        // Fallback: use the conversation ID
+        recipientId = selectedConversation.id;
       }
-    } catch (error) {
-      console.error('Reply error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to send reply');
-    } finally {
-      setSendingReply(false);
     }
-  };
+    
+    console.log('Replying to:', {
+      name: selectedConversation.sender,
+      recipient_id: recipientId,
+      platform: selectedConversation.platform
+    });
+    
+    const response = await messages.replyToMessage(
+      selectedConversation.platform,
+      replyText.trim(),
+      recipientId
+    );
+    
+    if (response.data.success) {
+      toast.success('Reply sent successfully!');
+      
+      const newMessage = {
+        id: `sent-${Date.now()}`,
+        platform: selectedConversation.platform,
+        sender: 'Me',
+        sender_id: 'me',
+        recipient_id: recipientId,
+        recipient_name: selectedConversation.sender,
+        text: replyText.trim(),
+        created_at: new Date().toISOString(),
+        is_read: true,
+        is_outgoing: true,
+        conversation_id: selectedConversation.id,
+        platform_name: selectedConversation.platform_name,
+        platform_icon: selectedConversation.platform_icon,
+        sender_name: 'Me'
+      };
+      
+      const updatedMessages = [...selectedConversation.messages, newMessage];
+      updatedMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      
+      const updatedConversation = {
+        ...selectedConversation,
+        messages: updatedMessages,
+        last_message: newMessage
+      };
+      
+      setSelectedConversation(updatedConversation);
+      setMessageList(prev => [...prev, newMessage]);
+      setReplyText('');
+      
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      
+      await fetchMessages();
+    } else {
+      toast.error(response.data.error || 'Failed to send reply');
+    }
+  } catch (error) {
+    console.error('Reply error:', error);
+    toast.error(error.response?.data?.detail || 'Failed to send reply');
+  } finally {
+    setSendingReply(false);
+  }
+};
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
@@ -242,18 +315,15 @@ const Messages = () => {
     whatsapp: 'bg-green-100 text-green-700',
   };
 
-  // FIXED: Better conversation grouping with no duplicates
+  // Conversation grouping
   const conversations = messageList.reduce((acc, msg) => {
-    // Skip self-messages
     if (msg.sender === 'Me' && !msg.recipient_id) {
       return acc;
     }
     
-    // Get or create conversation key
     let conversationKey = msg.conversation_id;
     
     if (!conversationKey) {
-      // Create a consistent key based on the other party
       const otherPartyId = msg.is_outgoing ? msg.recipient_id : msg.sender_id;
       if (!otherPartyId || otherPartyId === 'me' || otherPartyId === 'Me') {
         return acc;
@@ -261,14 +331,11 @@ const Messages = () => {
       conversationKey = `${msg.platform}-${otherPartyId}`;
     }
     
-    // Skip self conversations
     if (conversationKey.includes('-me') || conversationKey.includes('-Me')) {
       return acc;
     }
     
-    // Check if this conversation already exists
     if (!acc[conversationKey]) {
-      // Determine the other party
       let otherPartyName = msg.sender;
       let otherPartyId = msg.sender_id;
       
@@ -277,7 +344,6 @@ const Messages = () => {
         otherPartyId = msg.recipient_id;
       }
       
-      // Skip if the other party is "Me"
       if (otherPartyName === 'Me' || otherPartyName === 'me' || otherPartyId === 'me') {
         return acc;
       }
@@ -296,18 +362,15 @@ const Messages = () => {
       };
     }
     
-    // Add message to conversation
     acc[conversationKey].messages.push(msg);
     
-    // Count unread (only incoming)
     if (!msg.is_read && !msg.is_outgoing) {
       acc[conversationKey].unread_count += 1;
     }
     
-    // Sort messages
+    // Sort messages oldest first
     acc[conversationKey].messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
-    // Update last message
     if (new Date(msg.created_at) > new Date(acc[conversationKey].last_message.created_at)) {
       acc[conversationKey].last_message = msg;
     }
@@ -315,12 +378,10 @@ const Messages = () => {
     return acc;
   }, {});
 
-  // Convert to array and sort
   const conversationList = Object.values(conversations).sort((a, b) => {
     return new Date(b.last_message.created_at) - new Date(a.last_message.created_at);
   });
 
-  // Filter out self conversations
   const filteredConversationsList = conversationList.filter(conv => 
     conv.sender !== 'Me' && 
     conv.sender !== 'me' &&
@@ -329,7 +390,6 @@ const Messages = () => {
     !conv.id.includes('-Me')
   );
 
-  // Apply search filter
   const filteredConversations = filteredConversationsList.filter(conv => 
     conv.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.messages.some(m => m.text.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -514,7 +574,7 @@ const Messages = () => {
                 </div>
               </div>
 
-              {/* Chat Messages */}
+              {/* Chat Messages - Sorted Oldest First */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
                 {conversationMessages.map((msg, index) => {
                   const isOutgoing = msg.is_outgoing || msg.sender === 'Me' || msg.sender_id === 'me';

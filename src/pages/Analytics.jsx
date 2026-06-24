@@ -82,68 +82,51 @@ const Analytics = () => {
   const [recentPosts, setRecentPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [postAnalytics, setPostAnalytics] = useState(null);
+  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
 
   useEffect(() => {
     fetchAnalytics();
+    fetchConnectedPlatforms();
   }, []);
+
+  const fetchConnectedPlatforms = async () => {
+    try {
+      // Get connected platforms from your API
+      const response = await fetch('/api/v1/users/me/platforms', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      // Extract platform names from the response
+      if (data && data.platforms) {
+        const platforms = data.platforms.map(p => p.platform);
+        setConnectedPlatforms(platforms);
+      }
+    } catch (error) {
+      console.error('Failed to fetch connected platforms:', error);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
       
-      const postsRes = await posts.getPosts(10);
+      const postsRes = await posts.getPosts(50);
       setRecentPosts(postsRes.data.posts);
       
-      let totalReach = 0;
-      let totalImpressions = 0;
-      let totalLikes = 0;
-      let totalComments = 0;
-      let totalShares = 0;
-      const platformStats = {};
+      // Get summary from backend
+      const summaryRes = await analytics.getSummary();
+      const summaryData = summaryRes.data;
       
-      for (const post of postsRes.data.posts) {
-        try {
-          const analyticsRes = await analytics.getPostAnalytics(post.id);
-          const postData = analyticsRes.data;
-          
-          if (postData && postData.analytics) {
-            for (const analytic of postData.analytics) {
-              totalReach += analytic.reach || 0;
-              totalImpressions += analytic.impressions || 0;
-              totalLikes += analytic.likes || 0;
-              totalComments += analytic.comments || 0;
-              totalShares += analytic.shares || 0;
-              
-              if (!platformStats[analytic.platform]) {
-                platformStats[analytic.platform] = {
-                  reach: 0,
-                  impressions: 0,
-                  likes: 0,
-                  comments: 0,
-                  shares: 0,
-                  posts: 0
-                };
-              }
-              platformStats[analytic.platform].reach += analytic.reach || 0;
-              platformStats[analytic.platform].impressions += analytic.impressions || 0;
-              platformStats[analytic.platform].likes += analytic.likes || 0;
-              platformStats[analytic.platform].comments += analytic.comments || 0;
-              platformStats[analytic.platform].shares += analytic.shares || 0;
-              platformStats[analytic.platform].posts += 1;
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to fetch analytics for post ${post.id}:`, err);
-        }
-      }
+      // Get platform stats
+      const platformStats = summaryData.platform_stats || {};
       
       setSummary({
-        total_reach: totalReach,
-        total_impressions: totalImpressions,
-        total_likes: totalLikes,
-        total_comments: totalComments,
-        total_shares: totalShares,
-        total_posts: postsRes.data.posts.length,
+        total_reach: summaryData.total_reach || 0,
+        total_impressions: summaryData.total_impressions || 0,
+        total_likes: summaryData.total_likes || 0,
+        total_comments: summaryData.total_comments || 0,
+        total_shares: summaryData.total_shares || 0,
+        total_posts: summaryData.total_posts || 0,
         platform_stats: platformStats
       });
       
@@ -185,6 +168,14 @@ const Analytics = () => {
     linkedin: <FaLinkedin className="text-blue-700" size={20} />
   };
 
+  const platformColors = {
+    youtube: 'border-red-200 bg-red-50',
+    facebook: 'border-blue-200 bg-blue-50',
+    instagram: 'border-pink-200 bg-pink-50',
+    twitter: 'border-sky-200 bg-sky-50',
+    linkedin: 'border-blue-200 bg-blue-50'
+  };
+
   const statCards = [
     { icon: FiTrendingUp, label: 'Total Reach', value: summary?.total_reach || 0, color: 'text-blue-500', bg: 'bg-blue-50' },
     { icon: FiEye, label: 'Impressions', value: summary?.total_impressions || 0, color: 'text-purple-500', bg: 'bg-purple-50' },
@@ -202,6 +193,41 @@ const Analytics = () => {
     if (!summary || summary.total_posts === 0) return 0;
     return Math.round(getTotalEngagement() / summary.total_posts);
   };
+
+  // Get platform stats with connected platforms displayed even with zero data
+  const getPlatformStatsWithConnected = () => {
+    const stats = summary?.platform_stats || {};
+    const result = [];
+    
+    // Add all platforms that have data
+    for (const [platform, data] of Object.entries(stats)) {
+      result.push({
+        platform,
+        ...data,
+        hasData: data.posts > 0 || data.reach > 0 || data.likes > 0
+      });
+    }
+    
+    // Add connected platforms that have no data yet
+    for (const platform of connectedPlatforms) {
+      if (!result.find(p => p.platform === platform)) {
+        result.push({
+          platform,
+          reach: 0,
+          impressions: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          posts: 0,
+          hasData: false
+        });
+      }
+    }
+    
+    return result;
+  };
+
+  const platformStatsList = getPlatformStatsWithConnected();
 
   if (loading) {
     return (
@@ -306,45 +332,65 @@ const Analytics = () => {
         </div>
 
         {/* Platform Breakdown */}
-        {summary?.platform_stats && Object.keys(summary.platform_stats).length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <FiActivity className="text-pink-600" size={18} />
-              Platform Breakdown
-            </h2>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <FiActivity className="text-pink-600" size={18} />
+            Platform Breakdown
+          </h2>
+          
+          {platformStatsList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(summary.platform_stats).map(([platform, stats]) => (
-                <div key={platform} className="bg-gray-50 rounded-lg p-4 border border-gray-100 hover:border-pink-200 transition-all">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                      {platformIcons[platform]}
+              {platformStatsList.map((stat) => {
+                const platform = stat.platform;
+                const hasData = stat.hasData;
+                
+                return (
+                  <div key={platform} className={`${platformColors[platform] || 'border-gray-200 bg-gray-50'} rounded-lg p-4 border transition-all hover:shadow-md`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                        {platformIcons[platform] || <FiActivity size={16} className="text-gray-400" />}
+                      </div>
+                      <span className="text-gray-800 font-medium capitalize">{platform}</span>
+                      <span className="text-xs text-gray-400 ml-auto">
+                        {stat.posts} post{stat.posts !== 1 ? 's' : ''}
+                        {!hasData && (
+                          <span className="ml-1 text-amber-500 text-xs">(no data yet)</span>
+                        )}
+                      </span>
                     </div>
-                    <span className="text-gray-800 font-medium capitalize">{platform}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{stats.posts} post{stats.posts !== 1 ? 's' : ''}</span>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-gray-400 text-xs">Reach</p>
+                        <p className="text-gray-800 font-semibold">{stat.reach.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">Impressions</p>
+                        <p className="text-gray-800 font-semibold">{stat.impressions.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">Likes</p>
+                        <p className="text-gray-800 font-semibold">{stat.likes.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs">Comments</p>
+                        <p className="text-gray-800 font-semibold">{stat.comments.toLocaleString()}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-gray-400 text-xs">Shares</p>
+                        <p className="text-gray-800 font-semibold">{stat.shares.toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-400 text-xs">Reach</p>
-                      <p className="text-gray-800 font-semibold">{stats.reach.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Impressions</p>
-                      <p className="text-gray-800 font-semibold">{stats.impressions.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Likes</p>
-                      <p className="text-gray-800 font-semibold">{stats.likes.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Comments</p>
-                      <p className="text-gray-800 font-semibold">{stats.comments.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No platforms connected yet.</p>
+              <p className="text-gray-500 text-sm mt-1">Connect your social media accounts to see analytics.</p>
+            </div>
+          )}
+        </div>
 
         {/* Recent Posts */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
@@ -375,7 +421,7 @@ const Analytics = () => {
                         <div className="flex flex-wrap gap-2">
                           {post.platforms?.map((platform) => (
                             <span key={platform} className="text-xs text-gray-500">
-                              {platformIcons[platform]}
+                              {platformIcons[platform] || platform}
                             </span>
                           ))}
                         </div>
