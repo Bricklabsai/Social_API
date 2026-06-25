@@ -5,7 +5,7 @@ import { posts } from '../services/api';
 import { 
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaTrash,
-  FaChartLine, FaGlobe, FaFilter
+  FaChartLine, FaGlobe, FaFilter, FaTrashAlt
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -51,12 +51,6 @@ const platformConfig = {
     color: 'text-pink-600',
     bg: 'bg-pink-50'
   },
-  twitter: { 
-    icon: <FaTwitter className="text-sky-500" size={16} />, 
-    name: 'Twitter',
-    color: 'text-sky-500',
-    bg: 'bg-sky-50'
-  },
   linkedin: { 
     icon: <FaLinkedin className="text-blue-700" size={16} />, 
     name: 'LinkedIn',
@@ -69,17 +63,9 @@ const platformConfig = {
     color: 'text-red-600',
     bg: 'bg-red-50'
   },
-  whatsapp: { 
-    icon: <FaWhatsapp className="text-green-500" size={16} />, 
-    name: 'WhatsApp',
-    color: 'text-green-500',
-    bg: 'bg-green-50'
-  },
 };
 
 const detectPlatforms = (post) => {
-  console.log('Detecting platforms for post:', post.id, post);
-  
   const detected = [];
   
   if (post.platforms && Array.isArray(post.platforms) && post.platforms.length > 0) {
@@ -94,10 +80,8 @@ const detectPlatforms = (post) => {
         
         if (isInstagram) {
           detected.push('instagram');
-          console.log('Detected as Instagram via clues');
         } else {
           detected.push('facebook');
-          console.log('Keeping as Facebook');
         }
       } else {
         detected.push(p);
@@ -177,6 +161,9 @@ const Posts = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [deleting, setDeleting] = useState(null);
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [selectedPosts, setSelectedPosts] = useState([]);
 
   useEffect(() => {
     fetchPosts();
@@ -196,14 +183,11 @@ const Posts = () => {
         postsData = [response.data];
       }
       
-      console.log('Raw posts data:', postsData);
-      
       const processedPosts = postsData.map(post => ({
         ...post,
         detectedPlatforms: detectPlatforms(post)
       }));
       
-      console.log('Processed posts:', processedPosts);
       setUserPosts(processedPosts);
     } catch (error) {
       console.error('Failed to fetch posts:', error);
@@ -213,16 +197,95 @@ const Posts = () => {
     }
   };
 
-  const handleDelete = async (postId) => {
-    if (window.confirm('Delete this post record? (This does not delete from social media)')) {
-      try {
-        await posts.deletePost(postId);
-        toast.success('Post deleted from database');
-        fetchPosts();
-      } catch (error) {
-        toast.error('Failed to delete');
-      }
+  // ============================================================
+  // FIXED: handleDelete - only show warning for actual failures
+  // ============================================================
+  const handleDelete = async (postId, deleteFromSocial = true) => {
+    if (!window.confirm(
+      `Delete this post?\n\nThis will remove it from the database${deleteFromSocial ? ' AND from social media platforms.' : '.'}`
+    )) {
+      return;
     }
+
+    setDeleting(postId);
+    try {
+      const response = await posts.deletePost(postId, deleteFromSocial);
+      
+      if (response.data.success) {
+        // Show success toast
+        toast.success('Post deleted from database');
+        
+        // Check social deletion results - only show warnings for failures
+        if (response.data.social_results && deleteFromSocial) {
+          const socialResults = response.data.social_results;
+          
+          // Count successes and failures
+          const successes = Object.values(socialResults).filter(r => r.success === true).length;
+          const failures = Object.values(socialResults).filter(r => r.success === false).length;
+          
+          if (failures > 0 && successes > 0) {
+            // Some platforms succeeded, some failed
+            const failedPlatforms = Object.entries(socialResults)
+              .filter(([_, r]) => r.success === false)
+              .map(([platform]) => platform);
+            toast.warning(`Deleted from ${successes} platform(s), but failed on: ${failedPlatforms.join(', ')}`);
+          } else if (failures > 0 && successes === 0) {
+            // All platforms failed - but post was still deleted from database
+            toast.warning('Post deleted from database, but could not delete from social media');
+          }
+          // If all succeeded, no extra toast needed
+        }
+        
+        // Update UI
+        setUserPosts(prev => prev.filter(p => p.id !== postId));
+        setSelectedPosts(prev => prev.filter(id => id !== postId));
+      } else {
+        toast.error(response.data.message || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete post');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  // BATCH DELETE
+  const handleBatchDelete = async () => {
+    if (selectedPosts.length === 0) {
+      toast.error('Please select at least one post');
+      return;
+    }
+
+    if (!window.confirm(
+      `Delete ${selectedPosts.length} selected posts?\n\nThis will remove them from the database AND from social media platforms.`
+    )) {
+      return;
+    }
+
+    try {
+      const response = await posts.batchDelete(selectedPosts);
+      
+      if (response.data.success) {
+        toast.success(`${response.data.deleted} posts deleted successfully`);
+        setUserPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
+        setSelectedPosts([]);
+        setDeleteMode(false);
+      } else {
+        toast.error('Failed to delete posts');
+      }
+    } catch (error) {
+      console.error('Batch delete error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete posts');
+    }
+  };
+
+  const togglePostSelection = (postId) => {
+    setSelectedPosts(prev =>
+      prev.includes(postId)
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId]
+    );
   };
 
   const getStatusBadge = (status) => {
@@ -253,6 +316,22 @@ const Posts = () => {
 
   const allPlatforms = [...new Set(userPosts.flatMap(p => p.detectedPlatforms || []))];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded w-40 animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => <PostCardSkeleton key={i} />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -263,6 +342,31 @@ const Posts = () => {
               <h1 className="text-3xl font-bold text-gray-800">My Posts</h1>
               <p className="text-gray-500 mt-1">View and manage your published content</p>
               <p className="text-sm text-gray-400 mt-1">Total posts: {userPosts.length}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setDeleteMode(!deleteMode);
+                  setSelectedPosts([]);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  deleteMode
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {deleteMode ? 'Cancel Selection' : 'Select Posts'}
+              </button>
+              
+              {deleteMode && selectedPosts.length > 0 && (
+                <button
+                  onClick={handleBatchDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <FaTrashAlt size={14} />
+                  Delete Selected ({selectedPosts.length})
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -308,11 +412,7 @@ const Posts = () => {
         )}
 
         {/* Posts Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => <PostCardSkeleton key={i} />)}
-          </div>
-        ) : filteredPosts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
             <div className="text-6xl mb-4">📝</div>
             <p className="text-gray-400">
@@ -325,19 +425,40 @@ const Posts = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPosts.map((post) => {
               const platforms = post.detectedPlatforms || ['unknown'];
+              const isSelected = selectedPosts.includes(post.id);
+              const isDeleting = deleting === post.id;
+              
               return (
                 <div
                   key={post.id}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:shadow-pink-100/50 transition-all duration-300 cursor-pointer group"
-                  onClick={() => navigate(`/posts/${post.id}`)}
+                  className={`bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md hover:shadow-pink-100/50 transition-all duration-300 ${
+                    isSelected
+                      ? 'border-pink-400 bg-pink-50/30'
+                      : 'border-gray-100 hover:border-gray-200'
+                  }`}
                 >
-                  {/* Card Header */}
-                  <div className="p-4 border-b border-gray-100">
+                  {/* Selection Checkbox (when in delete mode) */}
+                  {deleteMode && (
+                    <div className="p-3 pb-0">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => togglePostSelection(post.id)}
+                          className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                        />
+                        <span className="text-sm text-gray-600">Select for deletion</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Card Content */}
+                  <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {getStatusBadge(post.status)}
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -351,12 +472,28 @@ const Posts = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(post.id);
+                            handleDelete(post.id, true);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-                          title="Delete record"
+                          disabled={isDeleting}
+                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-50"
+                          title="Delete from database and social media"
                         >
-                          <FaTrash size={14} />
+                          {isDeleting ? (
+                            <FaSpinner className="animate-spin" size={14} />
+                          ) : (
+                            <FaTrash size={14} />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(post.id, false);
+                          }}
+                          disabled={isDeleting}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                          title="Delete from database only"
+                        >
+                          <FaTrashAlt size={12} />
                         </button>
                       </div>
                     </div>
@@ -367,7 +504,7 @@ const Posts = () => {
                   </div>
 
                   {/* Card Content */}
-                  <div className="p-4 min-h-20">
+                  <div className="px-4 pb-2 min-h-20">
                     <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
                       {truncateText(post.content || post.content_text || '', 100)}
                     </p>

@@ -93,7 +93,7 @@ export const platforms = {
 };
 
 // ============================================
-// POSTS API
+// POSTS API (ADDED DELETE METHODS)
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
@@ -115,7 +115,18 @@ export const posts = {
   publishBackground: (data) => api.post('/publish/background', data),
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
-  deletePost: (id) => api.delete(`/publish/posts/${id}`),
+  
+  // Delete a single post (from database AND social media)
+  deletePost: (postId, deleteFromSocial = true) => 
+    api.delete(`/posts/${postId}?delete_from_social=${deleteFromSocial}`),
+  
+  // Batch delete multiple posts
+  batchDelete: (postIds, deleteFromSocial = true) => 
+    api.delete('/posts/batch', {
+      data: { post_ids: postIds },
+      params: { delete_from_social: deleteFromSocial }
+    }),
+  
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
@@ -167,35 +178,23 @@ export const messages = {
 };
 
 // ============================================
-// API KEYS (FIXED - Correct endpoints)
+// API KEYS
 // ============================================
 export const apiKeys = {
-  // Create a new API key
   create: (data) => api.post('/api-keys/create', data),
-  
-  // List all API keys for the current user
   list: () => api.get('/api-keys/list'),
-  
-  // Update an API key
   update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),
-  
-  // Delete an API key
   delete: (keyId) => api.delete(`/api-keys/${keyId}`),
-  
-  // Get usage statistics for an API key
   usage: (keyId) => api.get(`/api-keys/usage/${keyId}`),
 };
 
 // ============================================
-// SETTINGS API (FIXED - Uses correct endpoints)
+// SETTINGS API
 // ============================================
 export const settings = {
   getProfile: () => api.get('/users/me'),
   updateProfile: (data) => api.put('/users/me', data),
   changePassword: (data) => api.post('/users/change-password', data),
-  
-  // API Keys are now in the apiKeys object above
-  // These are just aliases for convenience
   getApiKeys: () => apiKeys.list(),
   generateApiKey: (data) => apiKeys.create(data),
   revokeApiKey: (keyId) => apiKeys.delete(keyId),

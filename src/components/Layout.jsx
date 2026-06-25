@@ -42,7 +42,7 @@ const Layout = ({ children }) => {
     whatsapp: <FaWhatsapp className="text-green-500" size={16} />,
   };
 
-  const connectedPlatforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'];
+  const connectedPlatforms = ['facebook', 'instagram', 'linkedin', 'youtube',];
 
   // Get user display name
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
