@@ -3,9 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { 
   FiUser, FiMail, FiLock, FiKey, FiCopy, FiCheck, 
   FiRefreshCw, FiEye, FiEyeOff, FiTrash2, FiShield,
-  FiCheckCircle, FiXCircle, FiAlertCircle
+  FiCheckCircle, FiXCircle, FiAlertCircle, FiPlus,
+  FiX  // ← ADDED
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { apiKeys, settings } from '../services/api';
 
 // Skeleton Component
 const SettingsSkeleton = () => (
@@ -92,10 +94,14 @@ const Settings = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // API Keys state
-  const [apiKeys, setApiKeys] = useState([]);
+  const [apiKeysList, setApiKeysList] = useState([]);
   const [generatingKey, setGeneratingKey] = useState(false);
   const [newKey, setNewKey] = useState(null);
   const [showSecret, setShowSecret] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyDescription, setNewKeyDescription] = useState('');
+  const [newKeyLimit, setNewKeyLimit] = useState(1000);
 
   // Fetch API keys on load
   useEffect(() => {
@@ -104,10 +110,11 @@ const Settings = () => {
 
   const fetchApiKeys = async () => {
     try {
-      const response = await api.get('/settings/api-keys');
-      setApiKeys(response.data.keys || []);
+      const response = await apiKeys.list();
+      setApiKeysList(response.data.keys || []);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
+      toast.error('Failed to load API keys');
     } finally {
       setLoading(false);
     }
@@ -118,9 +125,9 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await api.put('/settings/profile', profile);
+      const response = await settings.updateProfile(profile);
       toast.success('Profile updated successfully!');
-      updateUser(response.data.user);
+      if (updateUser) updateUser(response.data);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update profile');
     } finally {
@@ -141,7 +148,7 @@ const Settings = () => {
     }
     setSaving(true);
     try {
-      await api.post('/settings/change-password', {
+      await settings.changePassword({
         current_password: password.current,
         new_password: password.new,
         confirm_password: password.confirm
@@ -157,10 +164,24 @@ const Settings = () => {
 
   // Generate API Key
   const handleGenerateKey = async () => {
+    if (!newKeyName.trim()) {
+      toast.error('Please enter a name for your API key');
+      return;
+    }
+
     setGeneratingKey(true);
     try {
-      const response = await api.post('/settings/api-keys/generate');
+      const response = await apiKeys.create({
+        name: newKeyName.trim(),
+        description: newKeyDescription.trim(),
+        monthly_limit: newKeyLimit
+      });
+      
       setNewKey(response.data);
+      setShowCreateModal(false);
+      setNewKeyName('');
+      setNewKeyDescription('');
+      setNewKeyLimit(1000);
       toast.success('API key generated successfully!');
       fetchApiKeys();
     } catch (error) {
@@ -170,15 +191,26 @@ const Settings = () => {
     }
   };
 
-  // Revoke API Key
-  const handleRevokeKey = async (publicKey) => {
-    if (!confirm('Are you sure you want to revoke this API key?')) return;
+  // Toggle API Key Status
+  const handleToggleKey = async (keyId, currentStatus) => {
     try {
-      await api.post(`/settings/api-keys/${publicKey}/revoke`);
-      toast.success('API key revoked successfully');
+      await apiKeys.update(keyId, { is_active: !currentStatus });
+      toast.success(`API key ${!currentStatus ? 'activated' : 'deactivated'}`);
       fetchApiKeys();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to revoke API key');
+      toast.error('Failed to update API key');
+    }
+  };
+
+  // Delete API Key
+  const handleDeleteKey = async (keyId, keyName) => {
+    if (!confirm(`Are you sure you want to delete "${keyName}"? This action cannot be undone.`)) return;
+    try {
+      await apiKeys.delete(keyId);
+      toast.success('API key deleted successfully');
+      fetchApiKeys();
+    } catch (error) {
+      toast.error('Failed to delete API key');
     }
   };
 
@@ -186,6 +218,15 @@ const Settings = () => {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
@@ -325,33 +366,82 @@ const Settings = () => {
                 API Keys
               </h2>
               <button
-                onClick={handleGenerateKey}
-                disabled={generatingKey}
-                className="px-4 py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50 text-sm flex items-center gap-2"
+                onClick={() => setShowCreateModal(true)}
+                className="px-4 py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 text-sm flex items-center gap-2"
               >
-                {generatingKey ? <FiRefreshCw className="animate-spin" /> : <FiKey size={16} />}
+                <FiPlus size={16} />
                 Generate New Key
               </button>
             </div>
+
+            {/* Create Key Modal */}
+            {showCreateModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800">Create API Key</h3>
+                    <button
+                      onClick={() => setShowCreateModal(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiX size={20} />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Key Name *</label>
+                      <input
+                        type="text"
+                        value={newKeyName}
+                        onChange={(e) => setNewKeyName(e.target.value)}
+                        placeholder="e.g., My Blog Integration"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={newKeyDescription}
+                        onChange={(e) => setNewKeyDescription(e.target.value)}
+                        placeholder="What is this key for?"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Limit</label>
+                      <input
+                        type="number"
+                        value={newKeyLimit}
+                        onChange={(e) => setNewKeyLimit(parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Requests per month (0 = unlimited)</p>
+                    </div>
+                    <button
+                      onClick={handleGenerateKey}
+                      disabled={generatingKey}
+                      className="w-full py-2 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50"
+                    >
+                      {generatingKey ? <FiRefreshCw className="animate-spin inline" /> : 'Create API Key'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* New Key Alert */}
             {newKey && (
               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800 font-medium mb-2">
-                  ⚠️ Save your secret key now. It won't be shown again!
+                  ⚠️ Save your API key now. It won't be shown again!
                 </p>
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex-1 min-w-50">
-                    <p className="text-xs text-gray-500">Public Key</p>
-                    <code className="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 block truncate">
-                      {newKey.public_key}
-                    </code>
-                  </div>
-                  <div className="flex-1 min-w-50">
-                    <p className="text-xs text-gray-500">Secret Key</p>
+                    <p className="text-xs text-gray-500">API Key</p>
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 block truncate flex-1">
-                        {showSecret ? newKey.secret_key : '••••••••••••••••••••••••••••••'}
+                        {showSecret ? newKey.key : '••••••••••••••••••••••••••••••'}
                       </code>
                       <button
                         onClick={() => setShowSecret(!showSecret)}
@@ -360,7 +450,7 @@ const Settings = () => {
                         {showSecret ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                       </button>
                       <button
-                        onClick={() => copyToClipboard(newKey.secret_key)}
+                        onClick={() => copyToClipboard(newKey.key)}
                         className="text-pink-600 hover:text-pink-700"
                       >
                         <FiCopy size={16} />
@@ -378,44 +468,60 @@ const Settings = () => {
             )}
 
             {/* API Keys List */}
-            {apiKeys.length === 0 ? (
+            {apiKeysList.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <FiKey size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No API keys generated yet</p>
+                <p className="text-sm mt-1">Create your first API key to start building integrations.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {apiKeys.map((key) => (
-                  <div key={key.public_key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                {apiKeysList.map((key) => (
+                  <div key={key.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-pink-200 transition-all">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-500' : 'bg-red-400'}`}></div>
                       <div>
-                        <code className="text-sm font-mono text-gray-600">{key.public_key}</code>
+                        <p className="font-medium text-gray-800 text-sm">{key.name}</p>
                         <p className="text-xs text-gray-400">
-                          Created: {new Date(key.created_at).toLocaleDateString()}
-                          {key.last_used && ` • Last used: ${new Date(key.last_used).toLocaleDateString()}`}
+                          {key.description && `${key.description} • `}
+                          Created: {formatDate(key.created_at)}
+                          {key.last_used_at && ` • Last used: ${formatDate(key.last_used_at)}`}
                         </p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <span>Requests: {key.total_requests || 0}</span>
+                          <span>Monthly: {key.monthly_requests || 0}/{key.monthly_limit || 1000}</span>
+                          {key.expires_at && (
+                            <span>Expires: {formatDate(key.expires_at)}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${key.is_active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                        {key.is_active ? 'Active' : 'Revoked'}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${key.is_active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {key.is_active ? 'Active' : 'Inactive'}
                       </span>
-                      {key.is_active && (
-                        <button
-                          onClick={() => handleRevokeKey(key.public_key)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                          title="Revoke key"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      )}
                       <button
-                        onClick={() => copyToClipboard(key.public_key)}
-                        className="text-gray-400 hover:text-pink-600 transition-colors"
-                        title="Copy public key"
+                        onClick={() => handleToggleKey(key.id, key.is_active)}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          key.is_active ? 'text-gray-400 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'
+                        }`}
+                        title={key.is_active ? 'Deactivate' : 'Activate'}
                       >
-                        <FiCopy size={16} />
+                        {key.is_active ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteKey(key.id, key.name)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
+                        title="Delete key"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => copyToClipboard(key.key || key.id.toString())}
+                        className="p-1.5 text-gray-400 hover:text-pink-600 rounded-lg transition-colors"
+                        title="Copy key"
+                      >
+                        <FiCopy size={14} />
                       </button>
                     </div>
                   </div>

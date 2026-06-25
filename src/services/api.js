@@ -161,27 +161,44 @@ export const messages = {
       recipient_id: recipientId
     });
   },
-  // ADD THIS NEW METHOD
   deleteConversation: (conversationId) => {
     return api.delete(`/messages/conversation/${conversationId}`);
   },
 };
 
-
-
-
-// In api.js, add settings endpoints
+// ============================================
+// API KEYS (FIXED - Correct endpoints)
+// ============================================
+export const apiKeys = {
+  // Create a new API key
+  create: (data) => api.post('/api-keys/create', data),
+  
+  // List all API keys for the current user
+  list: () => api.get('/api-keys/list'),
+  
+  // Update an API key
+  update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),
+  
+  // Delete an API key
+  delete: (keyId) => api.delete(`/api-keys/${keyId}`),
+  
+  // Get usage statistics for an API key
+  usage: (keyId) => api.get(`/api-keys/usage/${keyId}`),
+};
 
 // ============================================
-// SETTINGS API
+// SETTINGS API (FIXED - Uses correct endpoints)
 // ============================================
 export const settings = {
-  getProfile: () => api.get('/settings/profile'),
-  updateProfile: (data) => api.put('/settings/profile', data),
-  changePassword: (data) => api.post('/settings/change-password', data),
-  getApiKeys: () => api.get('/settings/api-keys'),
-  generateApiKey: () => api.post('/settings/api-keys/generate'),
-  revokeApiKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
+  getProfile: () => api.get('/users/me'),
+  updateProfile: (data) => api.put('/users/me', data),
+  changePassword: (data) => api.post('/users/change-password', data),
+  
+  // API Keys are now in the apiKeys object above
+  // These are just aliases for convenience
+  getApiKeys: () => apiKeys.list(),
+  generateApiKey: (data) => apiKeys.create(data),
+  revokeApiKey: (keyId) => apiKeys.delete(keyId),
 };
 
 export default api;
