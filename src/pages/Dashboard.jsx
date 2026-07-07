@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom'; // ADDED for OAuth callback handling
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { platforms, posts } from '../services/api';
 import { 
@@ -63,7 +63,7 @@ const StatsSkeleton = () => (
 );
 
 const Dashboard = () => {
-  const location = useLocation(); // ADDED for OAuth callback handling
+  const location = useLocation();
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -79,58 +79,7 @@ const Dashboard = () => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  // EXISTING useEffect - Fetch connections on mount
-  useEffect(() => {
-    fetchConnections();
-  }, []);
-
-  // NEW useEffect - Handle OAuth callback redirects
-  useEffect(() => {
-  // Check URL parameters for OAuth callback
-  const params = new URLSearchParams(location.search);
-  const platform = params.get('platform');
-  const status = params.get('status');
-  const message = params.get('message');
-
-  if (platform && status) {
-    // Clear the URL parameters
-    window.history.replaceState({}, '', window.location.pathname);
-
-    if (status === 'success') {
-      toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
-      fetchConnections(); // Refresh the platform list
-    } else {
-      const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
-      toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
-    }
-  }
-}, [location.search]);
-  // Add this useEffect to your Dashboard component
-useEffect(() => {
-  // Handle OAuth callback messages from popup
-  const handleMessage = (event) => {
-    // Make sure the message is from our app
-    if (event.origin !== window.location.origin) return;
-    
-    if (event.data?.type === 'oauth-callback') {
-      const { platform, status, message } = event.data;
-      
-      if (status === 'success') {
-        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
-        fetchConnections();
-      } else {
-        const errorMsg = message || 'Unknown error';
-        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
-      }
-    }
-  };
-
-  window.addEventListener('message', handleMessage);
-  
-  return () => {
-    window.removeEventListener('message', handleMessage);
-  };
-}, []);
+  // Fetch connections
   const fetchConnections = async () => {
     try {
       setLoading(true);
@@ -157,45 +106,57 @@ useEffect(() => {
     }
   };
 
- const handleConnect = async (platform) => {
-  setActionInProgress(platform);
-  try {
-    const userStr = localStorage.getItem('user');
-    let userId = 1;
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        userId = user.id;
-      } catch (e) {}
-    }
-    
-    // Redirect the entire page (not a popup)
-    window.location.href = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`;
-    
-  } catch (error) {
-    console.error('Connection error:', error);
-    toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
-  } finally {
-    setActionInProgress(null);
-  }
-};   
-    // Check if popup closed
-    const checkInterval = setInterval(() => {
-      if (authWindow.closed) {
-        clearInterval(checkInterval);
-        // Refresh connections when popup closes
+  // Check URL parameters for OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const platform = params.get('platform');
+    const status = params.get('status');
+    const message = params.get('message');
+
+    if (platform && status) {
+      // Clear the URL parameters
+      window.history.replaceState({}, '', window.location.pathname);
+
+      if (status === 'success') {
+        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
         fetchConnections();
-        toast.success(`${platformDisplayNames[platform] || platform} connection updated`);
+      } else {
+        const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
+        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
       }
-    }, 500);
-    
-  } catch (error) {
-    console.error('Connection error:', error);
-    toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
-  } finally {
-    setActionInProgress(null);
-  }
-};
+    }
+  }, [location.search]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchConnections();
+  }, []);
+
+  const handleConnect = async (platform) => {
+    setActionInProgress(platform);
+    try {
+      const userStr = localStorage.getItem('user');
+      let userId = 1;
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          userId = user.id;
+        } catch (e) {
+          console.error('Failed to parse user:', e);
+        }
+      }
+      
+      // Redirect the entire page (not a popup)
+      window.location.href = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`;
+      
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   const handleDisconnect = async (platform) => {
     if (!window.confirm(`Are you sure you want to disconnect ${platformDisplayNames[platform] || platform}? This will remove your access token.`)) {
       return;
@@ -235,7 +196,6 @@ useEffect(() => {
     let isValid = false;
     let errorMessage = '';
 
-    // Check if any selected platform supports the file type
     const hasVideoPlatform = selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p));
     const hasImagePlatform = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
 
@@ -372,18 +332,16 @@ useEffect(() => {
 
   // Check if any platform supports the current selection
   const isThreadMode = selectedPlatforms.includes('twitter') && selectedPlatforms.length === 1 && postContent.split('\n').filter(l => l.trim()).length > 1;
-  const hasImageSupport = selectedPlatforms.some(p => ['facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
   const hasVideoSupport = selectedPlatforms.some(p => ['youtube', 'twitter'].includes(p));
 
   const hasAnyConnection = Object.values(platformConnections).some(p => p?.connected);
   const supportsFileUpload = selectedPlatforms.some(p => ['youtube', 'facebook', 'instagram', 'linkedin', 'twitter'].includes(p));
   
   const hasInstagram = selectedPlatforms.includes('instagram');
-  const hasLinkedIn = selectedPlatforms.includes('linkedin');
   const hasTwitter = selectedPlatforms.includes('twitter');
 
   const connectedCount = Object.values(platformConnections).filter(p => p?.connected).length;
-  const totalPlatforms = 6; // Facebook, Instagram, Twitter, LinkedIn, YouTube, WhatsApp
+  const totalPlatforms = 6;
 
   return (
     <div className="min-h-screen bg-white p-6">
