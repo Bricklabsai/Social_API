@@ -13,7 +13,8 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // CHANGED: Default is now COLLAPSED (true)
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const handleLogout = () => {
     logout();
@@ -30,7 +31,6 @@ const Layout = ({ children }) => {
     { path: '/messages', icon: FiMessageCircle, label: 'Messages' }, 
     { path: '/comments', icon: FiMessageSquare, label: 'Comments' },
     { path: '/settings', icon: FiSettings, label: 'Settings' }, 
-    
   ];
 
   const platformIcons = {
@@ -42,7 +42,7 @@ const Layout = ({ children }) => {
     whatsapp: <FaWhatsapp className="text-green-500" size={16} />,
   };
 
-  const connectedPlatforms = ['facebook', 'instagram', 'linkedin', 'youtube',];
+  const connectedPlatforms = ['facebook', 'instagram', 'linkedin', 'youtube'];
 
   // Get user display name
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
@@ -55,8 +55,11 @@ const Layout = ({ children }) => {
         className={`fixed left-0 top-0 h-full bg-white border-r border-gray-100 shadow-sm flex flex-col transition-all duration-300 z-50 ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
+        // ADDED: Hover to expand sidebar
+        onMouseEnter={() => setIsCollapsed(false)}
+        onMouseLeave={() => setIsCollapsed(true)}
       >
-        {/* Logo - SocialHub */}
+        {/* Logo */}
         <div className={`px-4 py-4 border-b border-gray-100 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isCollapsed && (
             <div className="flex items-center gap-2">
@@ -73,13 +76,15 @@ const Layout = ({ children }) => {
           )}
         </div>
         
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-500 hover:border-pink-300 transition-all shadow-sm"
-        >
-          {isCollapsed ? <FiChevronRight size={12} /> : <FiChevronLeft size={12} />}
-        </button>
+        {/* Collapse Toggle - Shows when expanded */}
+        {!isCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-500 hover:border-pink-300 transition-all shadow-sm"
+          >
+            <FiChevronLeft size={12} />
+          </button>
+        )}
         
         {/* User Profile */}
         <div className={`px-4 py-3 border-b border-gray-100 ${isCollapsed ? 'flex justify-center' : ''}`}>
@@ -133,6 +138,19 @@ const Layout = ({ children }) => {
                   <div key={platform} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm text-gray-500">
                     {platformIcons[platform]}
                     <span className="capitalize text-xs">{platform}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Show platform icons when collapsed */}
+          {isCollapsed && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <div className="flex flex-col items-center gap-2">
+                {connectedPlatforms.map((platform) => (
+                  <div key={platform} className="px-2 py-1" title={platform}>
+                    {platformIcons[platform]}
                   </div>
                 ))}
               </div>
