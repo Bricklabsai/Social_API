@@ -4,18 +4,20 @@ import toast from 'react-hot-toast';
 // Use environment variable or fallback to Render URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://unified-social-api.onrender.com/api/v1';
 
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,
 });
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
-    if (token && token !== 'undefined') {
+    if (token && token !== 'undefined' && token !== 'null') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -27,12 +29,40 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (!error.response) {
+      toast.error('Network error. Please check your connection.');
+      return Promise.reject(error);
+    }
+    
+    const { status, data } = error.response;
+    
+    if (status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
       toast.error('Session expired. Please login again.');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    } else if (status === 403) {
+      toast.error('You don\'t have permission to perform this action.');
+    } else if (status === 404) {
+      toast.error('Resource not found.');
+    } else if (status === 422) {
+      const errorMsg = data?.detail || data?.message || 'Validation error. Please check your input.';
+      toast.error(errorMsg);
+    } else if (status === 429) {
+      toast.error('Too many requests. Please wait a moment and try again.');
+    } else if (status === 500) {
+      toast.error('Server error. Please try again later.');
+    } else {
+      const message = data?.detail || data?.message || data?.error || 'An error occurred. Please try again.';
+      if (typeof message === 'string' && message.length > 0) {
+        toast.error(message);
+      } else {
+        toast.error('An error occurred. Please try again.');
+      }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -47,6 +77,7 @@ export const auth = {
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+    toast.success('Logged out successfully');
   },
 };
 
@@ -72,25 +103,56 @@ export const platforms = {
       
       return { data: { platforms: platformsData } };
     } catch (error) {
-      console.error('Error fetching connections:', error);
+      console.error('Failed to fetch connections:', error);
       throw error;
     }
   },
+  
   connect: (platform) => {
-    let userId = 1;
-    const userStr = localStorage.getItem('user');
-    if (userStr && userStr !== 'undefined') {
-      try {
-        const user = JSON.parse(userStr);
-        userId = user.id;
-      } catch (e) {
-        console.error('Failed to parse user:', e);
+    try {
+      let userId = 1;
+      const userStr = localStorage.getItem('user');
+      if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+        try {
+          const user = JSON.parse(userStr);
+          userId = user.id || 1;
+        } catch (e) {
+          console.error('Failed to parse user:', e);
+        }
       }
+      
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const authUrl = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`;
+      
+      const authWindow = window.open(
+        authUrl,
+        `${platform}_auth`,
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+      
+      if (!authWindow) {
+        toast.error('Popup blocked. Please allow popups for this site.');
+        return;
+      }
+      
+      const checkInterval = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(checkInterval);
+          toast.success(`${platform} connection updated`);
+        }
+      }, 500);
+      
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast.error(`Failed to connect ${platform}`);
+      throw error;
     }
-    // Use the full backend URL
-    const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://your-backend-name.onrender.com/api/v1';
-    window.open(`${BACKEND_URL}/auth/${platform}/connect?user_id=${userId}`, '_blank', 'width=600,height=700');
   },
+  
   disconnect: (platform) => api.delete(`/auth/${platform}/tokens`),
   getStatus: (platform) => api.get(`/auth/${platform}/tokens`),
 };
