@@ -197,9 +197,6 @@ const Posts = () => {
     }
   };
 
-  // ============================================================
-  // FIXED: handleDelete - only show warning for actual failures
-  // ============================================================
   const handleDelete = async (postId, deleteFromSocial = true) => {
     if (!window.confirm(
       `Delete this post?\n\nThis will remove it from the database${deleteFromSocial ? ' AND from social media platforms.' : '.'}`
@@ -212,31 +209,23 @@ const Posts = () => {
       const response = await posts.deletePost(postId, deleteFromSocial);
       
       if (response.data.success) {
-        // Show success toast
         toast.success('Post deleted from database');
         
-        // Check social deletion results - only show warnings for failures
         if (response.data.social_results && deleteFromSocial) {
           const socialResults = response.data.social_results;
-          
-          // Count successes and failures
           const successes = Object.values(socialResults).filter(r => r.success === true).length;
           const failures = Object.values(socialResults).filter(r => r.success === false).length;
           
           if (failures > 0 && successes > 0) {
-            // Some platforms succeeded, some failed
             const failedPlatforms = Object.entries(socialResults)
               .filter(([_, r]) => r.success === false)
               .map(([platform]) => platform);
             toast.warning(`Deleted from ${successes} platform(s), but failed on: ${failedPlatforms.join(', ')}`);
           } else if (failures > 0 && successes === 0) {
-            // All platforms failed - but post was still deleted from database
             toast.warning('Post deleted from database, but could not delete from social media');
           }
-          // If all succeeded, no extra toast needed
         }
         
-        // Update UI
         setUserPosts(prev => prev.filter(p => p.id !== postId));
         setSelectedPosts(prev => prev.filter(id => id !== postId));
       } else {
@@ -250,7 +239,7 @@ const Posts = () => {
     }
   };
 
-  // BATCH DELETE
+  // FIXED: Batch delete - handle it individually since batch endpoint might not exist
   const handleBatchDelete = async () => {
     if (selectedPosts.length === 0) {
       toast.error('Please select at least one post');
@@ -263,20 +252,26 @@ const Posts = () => {
       return;
     }
 
-    try {
-      const response = await posts.batchDelete(selectedPosts);
-      
-      if (response.data.success) {
-        toast.success(`${response.data.deleted} posts deleted successfully`);
-        setUserPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
-        setSelectedPosts([]);
-        setDeleteMode(false);
-      } else {
-        toast.error('Failed to delete posts');
+    let deleted = 0;
+    let failed = 0;
+
+    for (const postId of selectedPosts) {
+      try {
+        await posts.deletePost(postId, true);
+        deleted++;
+      } catch (error) {
+        console.error(`Failed to delete post ${postId}:`, error);
+        failed++;
       }
-    } catch (error) {
-      console.error('Batch delete error:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete posts');
+    }
+
+    if (deleted > 0) {
+      toast.success(`${deleted} posts deleted successfully${failed > 0 ? `, ${failed} failed` : ''}`);
+      setUserPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
+      setSelectedPosts([]);
+      setDeleteMode(false);
+    } else {
+      toast.error('Failed to delete posts');
     }
   };
 
@@ -383,7 +378,7 @@ const Posts = () => {
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   filter === 'all' 
-                    ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
+                    ? 'bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
                 }`}
               >
@@ -398,7 +393,7 @@ const Posts = () => {
                     onClick={() => setFilter(platform)}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       filter === platform 
-                        ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
+                        ? 'bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
                     }`}
                   >
