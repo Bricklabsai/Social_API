@@ -241,21 +241,13 @@ export const messages = {
 // ============================================
 // API KEYS - FIXED to match Settings page expectations
 // ============================================
+// In api.js
 export const apiKeys = {
-  // FIXED: list() instead of getKeys()
-  list: () => api.get('/settings/api-keys'),
-  // FIXED: create() instead of generateKey()
-  create: (data) => api.post('/settings/api-keys/generate', data),
-  // FIXED: update() for toggling active status
-  update: (keyId, data) => api.put(`/settings/api-keys/${keyId}`, data),
-  // FIXED: delete() instead of revokeKey()
-  delete: (keyId) => api.delete(`/settings/api-keys/${keyId}`),
-  // Keep the old methods for backward compatibility
-  getKeys: () => api.get('/settings/api-keys'),
-  generateKey: (data) => api.post('/settings/api-keys/generate', data),
-  revokeKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
+  list: () => api.get('/api-keys/list'),  // Changed from /settings/api-keys
+  create: (data) => api.post('/api-keys/create', data),  // Changed from /settings/api-keys/generate
+  update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),  // Changed from /settings/api-keys/${keyId}
+  delete: (keyId) => api.delete(`/api-keys/${keyId}`),  // Changed from /settings/api-keys/${keyId}
 };
-
 // ============================================
 // SETTINGS API
 // ============================================
