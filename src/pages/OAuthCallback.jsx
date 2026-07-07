@@ -1,65 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function OAuthCallback() {
-  const [status, setStatus] = useState('processing');
-  const [platform, setPlatform] = useState('');
-  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get URL parameters
     const params = new URLSearchParams(window.location.search);
-    const platformParam = params.get('platform');
-    const statusParam = params.get('status');
-    const messageParam = params.get('message');
+    const platform = params.get('platform');
+    const status = params.get('status');
+    const message = params.get('message');
 
-    console.log('🔐 OAuth Callback Page Loaded');
-    console.log('Platform:', platformParam);
-    console.log('Status:', statusParam);
-    console.log('Message:', messageParam);
-    console.log('Is this a popup?', !!window.opener);
+    console.log('🔐 OAuth Callback:', { platform, status, message });
 
-    setPlatform(platformParam || 'unknown');
-    setStatus(statusParam || 'processing');
-    setMessage(messageParam || '');
+    // Always redirect to dashboard with the parameters
+    // This works whether it's a popup or a full page redirect
+    navigate(`/dashboard?platform=${platform}&status=${status}&message=${message}`, { replace: true });
 
-    // If this is a popup, send message to parent
+    // If this was a popup, close it after redirecting
     if (window.opener) {
-      console.log('📤 Sending message to parent window...');
-      
-      // Send message to the parent window
-      window.opener.postMessage({
-        type: 'oauth-callback',
-        platform: platformParam,
-        status: statusParam,
-        message: messageParam
-      }, window.location.origin);
-
-      // Close the popup after a short delay
-      setTimeout(() => {
-        console.log('🔒 Closing popup...');
-        window.close();
-      }, 1000);
-    } else {
-      // If not in a popup, redirect to dashboard
-      console.log('🔄 Not in popup, redirecting to dashboard...');
-      window.location.href = `/dashboard?platform=${platformParam}&status=${statusParam}&message=${messageParam}`;
+      setTimeout(() => window.close(), 1000);
     }
-  }, []);
+  }, [navigate]);
 
-  // Show loading/status UI
   return (
     <div style={{
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      backgroundColor: '#ffffff'
+      fontFamily: 'sans-serif'
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{
-          width: '48px',
-          height: '48px',
+          width: '40px',
+          height: '40px',
           border: '4px solid #f3f3f3',
           borderTop: '4px solid #ec4899',
           borderRadius: '50%',
@@ -72,21 +47,10 @@ function OAuthCallback() {
             100% { transform: rotate(360deg); }
           }
         `}</style>
-        <h2 style={{ color: '#1f2937', marginBottom: '8px' }}>
-          {status === 'success' ? '✅ Connected Successfully!' : 
-           status === 'error' ? '❌ Connection Failed' : 
-           'Connecting...'}
-        </h2>
-        <p style={{ color: '#6b7280', marginTop: '0' }}>
-          {status === 'success' ? `Connected to ${platform}` :
-           status === 'error' ? message || 'Something went wrong' :
-           'Please wait while we complete the connection...'}
+        <h2>Redirecting...</h2>
+        <p style={{ fontSize: '14px', color: '#666' }}>
+          {new URLSearchParams(window.location.search).get('platform') || 'unknown'} connection completed
         </p>
-        {window.opener && (
-          <p style={{ color: '#9ca3af', fontSize: '14px', marginTop: '16px' }}>
-            This window will close automatically...
-          </p>
-        )}
       </div>
     </div>
   );
