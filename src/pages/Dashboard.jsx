@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom'; // ADDED for OAuth callback handling
 import Layout from '../components/Layout';
 import { platforms, posts } from '../services/api';
 import { 
@@ -9,7 +10,7 @@ import {
 import { FiSend, FiImage, FiVideo, FiFile, FiType } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-// Get the backend URL from environment or use the Codespace URL
+// Get the backend URL from environment or use the Render URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://unified-social-api.onrender.com/api/v1';
 
 const platformIcons = {
@@ -62,6 +63,7 @@ const StatsSkeleton = () => (
 );
 
 const Dashboard = () => {
+  const location = useLocation(); // ADDED for OAuth callback handling
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -71,9 +73,38 @@ const Dashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(null);
 
+  // Helper function to capitalize platform names
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  // EXISTING useEffect - Fetch connections on mount
   useEffect(() => {
     fetchConnections();
   }, []);
+
+  // NEW useEffect - Handle OAuth callback redirects
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const platform = params.get('platform');
+    const status = params.get('status');
+    const message = params.get('message');
+    
+    if (platform && status) {
+      if (status === 'success') {
+        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
+        // Refresh the connections list to show the new connection
+        fetchConnections();
+      } else {
+        const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
+        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
+      }
+      
+      // Clean the URL - remove the query parameters
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [location.search]);
 
   const fetchConnections = async () => {
     try {
@@ -118,7 +149,6 @@ const Dashboard = () => {
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
       
-      // Use the backend URL from environment or the Codespace URL
       const authWindow = window.open(
         `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`,
         `${platform}_auth`,
@@ -363,7 +393,6 @@ const Dashboard = () => {
                 const isConnected = connection?.connected;
                 const isInProgress = actionInProgress === platform;
                 const displayName = platformDisplayNames[platform];
-                const colorClass = platformColors[platform] || 'border-gray-200 bg-gray-50 hover:bg-gray-100';
                 
                 return (
                   <div
