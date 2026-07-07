@@ -1,7 +1,8 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://glorious-space-enigma-v6qjqp5g5rx6cw99q-8000.app.github.dev/api/v1';
+// Use environment variable or fallback to Render URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://unified-social-api.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -86,14 +87,16 @@ export const platforms = {
         console.error('Failed to parse user:', e);
       }
     }
-    window.open(`${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`, '_blank', 'width=600,height=700');
+    // Use the full backend URL
+    const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://your-backend-name.onrender.com/api/v1';
+    window.open(`${BACKEND_URL}/auth/${platform}/connect?user_id=${userId}`, '_blank', 'width=600,height=700');
   },
   disconnect: (platform) => api.delete(`/auth/${platform}/tokens`),
   getStatus: (platform) => api.get(`/auth/${platform}/tokens`),
 };
 
 // ============================================
-// POSTS API (ADDED DELETE METHODS)
+// POSTS API
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
@@ -115,18 +118,7 @@ export const posts = {
   publishBackground: (data) => api.post('/publish/background', data),
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
-  
-  // Delete a single post (from database AND social media)
-  deletePost: (postId, deleteFromSocial = true) => 
-    api.delete(`/posts/${postId}?delete_from_social=${deleteFromSocial}`),
-  
-  // Batch delete multiple posts
-  batchDelete: (postIds, deleteFromSocial = true) => 
-    api.delete('/posts/batch', {
-      data: { post_ids: postIds },
-      params: { delete_from_social: deleteFromSocial }
-    }),
-  
+  deletePost: (id) => api.delete(`/publish/posts/${id}`),
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
@@ -172,32 +164,18 @@ export const messages = {
       recipient_id: recipientId
     });
   },
-  deleteConversation: (conversationId) => {
-    return api.delete(`/messages/conversation/${conversationId}`);
-  },
-};
-
-// ============================================
-// API KEYS
-// ============================================
-export const apiKeys = {
-  create: (data) => api.post('/api-keys/create', data),
-  list: () => api.get('/api-keys/list'),
-  update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),
-  delete: (keyId) => api.delete(`/api-keys/${keyId}`),
-  usage: (keyId) => api.get(`/api-keys/usage/${keyId}`),
 };
 
 // ============================================
 // SETTINGS API
 // ============================================
 export const settings = {
-  getProfile: () => api.get('/users/me'),
-  updateProfile: (data) => api.put('/users/me', data),
-  changePassword: (data) => api.post('/users/change-password', data),
-  getApiKeys: () => apiKeys.list(),
-  generateApiKey: (data) => apiKeys.create(data),
-  revokeApiKey: (keyId) => apiKeys.delete(keyId),
+  getProfile: () => api.get('/settings/profile'),
+  updateProfile: (data) => api.put('/settings/profile', data),
+  changePassword: (data) => api.post('/settings/change-password', data),
+  getApiKeys: () => api.get('/settings/api-keys'),
+  generateApiKey: () => api.post('/settings/api-keys/generate'),
+  revokeApiKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
 };
 
 export default api;
