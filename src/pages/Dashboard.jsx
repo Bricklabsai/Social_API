@@ -170,23 +170,16 @@ useEffect(() => {
       } catch (e) {}
     }
     
-    const width = 600;
-    const height = 700;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
+    // Redirect the entire page (not a popup)
+    window.location.href = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`;
     
-    // Open the popup
-    const authWindow = window.open(
-      `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`,
-      `${platform}_auth`,
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-    
-    if (!authWindow) {
-      toast.error('Popup blocked. Please allow popups for this site.');
-      return;
-    }
-    
+  } catch (error) {
+    console.error('Connection error:', error);
+    toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
+  } finally {
+    setActionInProgress(null);
+  }
+};   
     // Check if popup closed
     const checkInterval = setInterval(() => {
       if (authWindow.closed) {
