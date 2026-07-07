@@ -201,27 +201,38 @@ const PostDetail = () => {
             </div>
           </div>
 
-          {/* Media Preview */}
+          {/* Media Preview - FIXED */}
           {mediaUrl && (
             <div className="bg-gray-50 p-8 flex justify-center items-center border-b border-gray-100">
               {mediaType === 'video' ? (
-                <div className="text-center">
-                  <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaYoutube size={48} className="text-red-500" />
-                  </div>
-                  <p className="text-gray-400 text-sm truncate max-w-md">Video: {mediaUrl}</p>
-                </div>
+                <video 
+                  controls 
+                  className="max-w-full max-h-96 rounded-lg shadow-md"
+                  src={mediaUrl}
+                >
+                  Your browser does not support the video tag.
+                </video>
               ) : mediaType === 'image' ? (
-                <div className="text-center">
-                  <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaInstagram size={48} className="text-pink-500" />
-                  </div>
-                  <p className="text-gray-400 text-sm truncate max-w-md">Image: {mediaUrl}</p>
-                </div>
+                <img 
+                  src={mediaUrl} 
+                  alt="Post media" 
+                  className="max-w-full max-h-96 object-contain rounded-lg shadow-md"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `
+                      <div class="text-center">
+                        <div class="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FaExternalLink size={48} class="text-pink-400" />
+                        </div>
+                        <p class="text-gray-400 text-sm">Media not available</p>
+                      </div>
+                    `;
+                  }}
+                />
               ) : (
                 <div className="text-center">
                   <div className="w-32 h-32 bg-gradient-to-br from-pink-50 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaExternalLink size={48} className="text-pink-400" />
+                    <FiExternalLink size={48} className="text-pink-400" />
                   </div>
                   <p className="text-gray-400 text-sm truncate max-w-md">Media: {mediaUrl}</p>
                 </div>
