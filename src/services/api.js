@@ -180,7 +180,17 @@ export const posts = {
   publishBackground: (data) => api.post('/publish/background', data),
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
-  deletePost: (id) => api.delete(`/publish/posts/${id}`),
+  deletePost: (id, deleteFromSocial = true) => {
+    // FIXED: Pass delete_from_social as query parameter
+    return api.delete(`/publish/posts/${id}?delete_from_social=${deleteFromSocial}`);
+  },
+  // FIXED: Added batchDelete method
+  batchDelete: (postIds, deleteFromSocial = true) => {
+    return api.post('/publish/posts/batch-delete', {
+      post_ids: postIds,
+      delete_from_social: deleteFromSocial
+    });
+  },
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
@@ -228,9 +238,21 @@ export const messages = {
   },
 };
 
+// ============================================
+// API KEYS - FIXED to match Settings page expectations
+// ============================================
 export const apiKeys = {
+  // FIXED: list() instead of getKeys()
+  list: () => api.get('/settings/api-keys'),
+  // FIXED: create() instead of generateKey()
+  create: (data) => api.post('/settings/api-keys/generate', data),
+  // FIXED: update() for toggling active status
+  update: (keyId, data) => api.put(`/settings/api-keys/${keyId}`, data),
+  // FIXED: delete() instead of revokeKey()
+  delete: (keyId) => api.delete(`/settings/api-keys/${keyId}`),
+  // Keep the old methods for backward compatibility
   getKeys: () => api.get('/settings/api-keys'),
-  generateKey: () => api.post('/settings/api-keys/generate'),
+  generateKey: (data) => api.post('/settings/api-keys/generate', data),
   revokeKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
 };
 
@@ -242,10 +264,8 @@ export const settings = {
   updateProfile: (data) => api.put('/settings/profile', data),
   changePassword: (data) => api.post('/settings/change-password', data),
   getApiKeys: () => api.get('/settings/api-keys'),
-  generateApiKey: () => api.post('/settings/api-keys/generate'),
+  generateApiKey: (data) => api.post('/settings/api-keys/generate', data),
   revokeApiKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
 };
 
 export default api;
-
-
