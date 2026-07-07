@@ -181,10 +181,8 @@ export const posts = {
   getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
   deletePost: (id, deleteFromSocial = true) => {
-    // FIXED: Pass delete_from_social as query parameter
     return api.delete(`/publish/posts/${id}?delete_from_social=${deleteFromSocial}`);
   },
-  // FIXED: Added batchDelete method
   batchDelete: (postIds, deleteFromSocial = true) => {
     return api.post('/publish/posts/batch-delete', {
       post_ids: postIds,
@@ -239,25 +237,26 @@ export const messages = {
 };
 
 // ============================================
-// API KEYS - FIXED to match Settings page expectations
+// API KEYS
 // ============================================
-// In api.js
 export const apiKeys = {
-  list: () => api.get('/api-keys/list'),  // Changed from /settings/api-keys
-  create: (data) => api.post('/api-keys/create', data),  // Changed from /settings/api-keys/generate
-  update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),  // Changed from /settings/api-keys/${keyId}
-  delete: (keyId) => api.delete(`/api-keys/${keyId}`),  // Changed from /settings/api-keys/${keyId}
+  list: () => api.get('/api-keys/list'),
+  create: (data) => api.post('/api-keys/create', data),
+  update: (keyId, data) => api.put(`/api-keys/${keyId}`, data),
+  delete: (keyId) => api.delete(`/api-keys/${keyId}`),
 };
+
 // ============================================
-// SETTINGS API
+// SETTINGS API - FIXED to match backend endpoints
 // ============================================
 export const settings = {
   getProfile: () => api.get('/settings/profile'),
   updateProfile: (data) => api.put('/settings/profile', data),
   changePassword: (data) => api.post('/settings/change-password', data),
-  getApiKeys: () => api.get('/settings/api-keys'),
-  generateApiKey: (data) => api.post('/settings/api-keys/generate', data),
-  revokeApiKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
+  // FIXED: These now point to the correct backend endpoints
+  getApiKeys: () => api.get('/api-keys/list'),
+  generateApiKey: (data) => api.post('/api-keys/create', data),
+  revokeApiKey: (publicKey) => api.post(`/api-keys/${publicKey}/revoke`),
 };
 
 export default api;
