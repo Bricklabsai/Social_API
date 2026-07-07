@@ -228,6 +228,12 @@ export const messages = {
   },
 };
 
+export const apiKeys = {
+  getKeys: () => api.get('/settings/api-keys'),
+  generateKey: () => api.post('/settings/api-keys/generate'),
+  revokeKey: (publicKey) => api.post(`/settings/api-keys/${publicKey}/revoke`),
+};
+
 // ============================================
 // SETTINGS API
 // ============================================
@@ -241,3 +247,5 @@ export const settings = {
 };
 
 export default api;
+
+
