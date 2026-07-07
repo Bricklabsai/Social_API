@@ -72,8 +72,6 @@ const Dashboard = () => {
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(null);
-  // State for sidebar hover
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   // Helper function to capitalize platform names
   const capitalizeFirstLetter = (string) => {
@@ -370,109 +368,65 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Platform Cards - With Collapsible Sidebar Implementation */}
+        {/* Platform Cards */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Social Platforms</h2>
-          
-          {/* Sidebar Container */}
-          <div 
-            className="relative"
-            onMouseEnter={() => setIsSidebarHovered(true)}
-            onMouseLeave={() => setIsSidebarHovered(false)}
-          >
-            {/* 
-              Collapsible Sidebar - collapsed by default, expands on hover 
-              Uses absolute positioning with high z-index so it overlays content
-            */}
-            <div 
-              className={`
-                absolute top-0 left-0 h-auto z-50 
-                transition-all duration-300 ease-in-out
-                bg-white rounded-xl shadow-lg border border-gray-100
-                ${isSidebarHovered ? 'w-64 p-4' : 'w-16 p-2'}
-              `}
-              style={{
-                boxShadow: isSidebarHovered 
-                  ? '0 10px 40px rgba(0,0,0,0.15)' 
-                  : '0 4px 12px rgba(0,0,0,0.08)'
-              }}
-            >
-              {loading ? (
-                <PlatformCardSkeleton />
-              ) : (
-                ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
-                  const connection = platformConnections[platform];
-                  const isConnected = connection?.connected;
-                  const isInProgress = actionInProgress === platform;
-                  const displayName = platformDisplayNames[platform];
-                  
-                  return (
-                    <div
-                      key={platform}
-                      className={`
-                        flex items-center gap-3 transition-all duration-200
-                        ${isSidebarHovered ? 'px-3 py-2.5' : 'px-2 py-2 justify-center'}
-                        rounded-lg cursor-pointer
-                        ${isConnected 
-                          ? 'border-pink-300 shadow-md shadow-pink-200/50 bg-pink-50/30' 
-                          : 'hover:bg-gray-50 border-transparent'
-                        }
-                        ${isSidebarHovered ? 'mb-2' : 'mb-1.5'}
-                      `}
-                    >
-                      <div className={`flex-shrink-0 ${isSidebarHovered ? 'w-10 h-10' : 'w-8 h-8'} rounded-xl flex items-center justify-center ${
-                        isConnected ? 'bg-pink-50' : 'bg-gray-50'
-                      }`}>
-                        {platformIcons[platform]}
-                      </div>
-                      
-                      {isSidebarHovered && (
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-medium text-sm ${isConnected ? 'text-gray-800' : 'text-gray-500'}`}>
-                            {displayName}
-                          </p>
-                          {isConnected ? (
-                            <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                              <span className="flex items-center gap-1 text-pink-600 text-xs whitespace-nowrap">
-                                <FaCheckCircle size={10} />
-                                Connected
-                              </span>
-                              <button
-                                onClick={() => handleDisconnect(platform)}
-                                disabled={isInProgress}
-                                className="text-xs text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 whitespace-nowrap"
-                              >
-                                {isInProgress ? <FaSpinner className="animate-spin inline" size={10} /> : 'Disconnect'}
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleConnect(platform)}
-                              disabled={isInProgress}
-                              className="mt-0.5 text-xs text-pink-600 hover:text-pink-700 transition-colors flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaPlug size={10} />}
-                              Connect
-                            </button>
-                          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <PlatformCardSkeleton key={i} />)
+            ) : (
+              ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'whatsapp'].map((platform) => {
+                const connection = platformConnections[platform];
+                const isConnected = connection?.connected;
+                const isInProgress = actionInProgress === platform;
+                const displayName = platformDisplayNames[platform];
+                
+                return (
+                  <div
+                    key={platform}
+                    className={`bg-white rounded-xl p-4 transition-all duration-300 border flex items-center gap-4 ${
+                      isConnected 
+                        ? 'border-pink-300 shadow-md shadow-pink-200/50' 
+                        : 'border-gray-100 hover:shadow-md hover:shadow-gray-100/50'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isConnected ? 'bg-pink-50' : 'bg-gray-50'
+                    }`}>
+                      {platformIcons[platform]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium ${isConnected ? 'text-gray-800' : 'text-gray-500'}`}>{displayName}</p>
+                      {isConnected ? (
+                        // FIXED: Added flex-wrap to prevent overflow
+                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                          <span className="flex items-center gap-1 text-pink-600 text-xs whitespace-nowrap">
+                            <FaCheckCircle size={10} />
+                            Connected
+                          </span>
+                          <button
+                            onClick={() => handleDisconnect(platform)}
+                            disabled={isInProgress}
+                            className="text-xs text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {isInProgress ? <FaSpinner className="animate-spin inline" size={10} /> : 'Disconnect'}
+                          </button>
                         </div>
-                      )}
-                      
-                      {!isSidebarHovered && (
-                        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 pointer-events-none transition-opacity group-hover:opacity-100">
-                          {displayName}
-                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleConnect(platform)}
+                          disabled={isInProgress}
+                          className="mt-1 text-xs text-pink-600 hover:text-pink-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isInProgress ? <FaSpinner className="animate-spin" size={10} /> : <FaPlug size={10} />}
+                          Connect
+                        </button>
                       )}
                     </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Content wrapper - gives space for the sidebar */}
-            <div className={`transition-all duration-300 ${isSidebarHovered ? 'ml-72' : 'ml-20'}`}>
-              {/* This empty div creates the spacing - the actual cards are rendered outside the sidebar */}
-            </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
