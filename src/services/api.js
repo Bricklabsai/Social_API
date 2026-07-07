@@ -247,13 +247,13 @@ export const apiKeys = {
 };
 
 // ============================================
-// SETTINGS API - FIXED to match backend endpoints
+// SETTINGS API - FIXED
 // ============================================
 export const settings = {
   getProfile: () => api.get('/settings/profile'),
   updateProfile: (data) => api.put('/settings/profile', data),
   changePassword: (data) => api.post('/settings/change-password', data),
-  // FIXED: These now point to the correct backend endpoints
+  // FIXED: These match the backend endpoints
   getApiKeys: () => api.get('/api-keys/list'),
   generateApiKey: (data) => api.post('/api-keys/create', data),
   revokeApiKey: (publicKey) => api.post(`/api-keys/${publicKey}/revoke`),
