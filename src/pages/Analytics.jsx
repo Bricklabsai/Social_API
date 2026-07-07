@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { analytics, posts } from '../services/api';
+import { analytics, posts, platforms } from '../services/api';
 import { 
   FiTrendingUp, FiUsers, FiHeart, FiMessageCircle, FiShare2, 
   FiEye, FiBarChart2, FiCalendar, FiRefreshCw, FiYoutube, 
@@ -91,15 +91,11 @@ const Analytics = () => {
 
   const fetchConnectedPlatforms = async () => {
     try {
-      // Get connected platforms from your API
-      const response = await fetch('/api/v1/users/me/platforms', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      // Extract platform names from the response
-      if (data && data.platforms) {
-        const platforms = data.platforms.map(p => p.platform);
-        setConnectedPlatforms(platforms);
+      // FIXED: Use the platforms API service instead of direct fetch
+      const response = await platforms.getConnections();
+      if (response.data && response.data.platforms) {
+        const platformsList = response.data.platforms.map(p => p.platform);
+        setConnectedPlatforms(platformsList);
       }
     } catch (error) {
       console.error('Failed to fetch connected platforms:', error);
@@ -111,11 +107,11 @@ const Analytics = () => {
       setLoading(true);
       
       const postsRes = await posts.getPosts(50);
-      setRecentPosts(postsRes.data.posts);
+      setRecentPosts(postsRes.data.posts || []);
       
       // Get summary from backend
       const summaryRes = await analytics.getSummary();
-      const summaryData = summaryRes.data;
+      const summaryData = summaryRes.data || {};
       
       // Get platform stats
       const platformStats = summaryData.platform_stats || {};
@@ -282,7 +278,7 @@ const Analytics = () => {
           <button
             onClick={refreshAnalytics}
             disabled={refreshing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 mt-4 sm:mt-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 mt-4 sm:mt-0"
           >
             <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
             Refresh
