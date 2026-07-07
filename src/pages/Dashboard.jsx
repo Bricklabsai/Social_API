@@ -86,26 +86,25 @@ const Dashboard = () => {
 
   // NEW useEffect - Handle OAuth callback redirects
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const platform = params.get('platform');
-    const status = params.get('status');
-    const message = params.get('message');
-    
-    if (platform && status) {
-      if (status === 'success') {
-        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
-        // Refresh the connections list to show the new connection
-        fetchConnections();
-      } else {
-        const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
-        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
-      }
-      
-      // Clean the URL - remove the query parameters
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [location.search]);
+  // Check URL parameters for OAuth callback
+  const params = new URLSearchParams(location.search);
+  const platform = params.get('platform');
+  const status = params.get('status');
+  const message = params.get('message');
 
+  if (platform && status) {
+    // Clear the URL parameters
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (status === 'success') {
+      toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
+      fetchConnections(); // Refresh the platform list
+    } else {
+      const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
+      toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
+    }
+  }
+}, [location.search]);
   // Add this useEffect to your Dashboard component
 useEffect(() => {
   // Handle OAuth callback messages from popup
