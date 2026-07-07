@@ -1,7 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://glorious-space-enigma-v6qjqp5g5rx6cw99q-8000.app.github.dev/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
