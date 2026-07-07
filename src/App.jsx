@@ -16,6 +16,7 @@ import Messages from './pages/Messages';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AdminBilling from './pages/AdminBilling';
+import OAuthCallback from './pages/OAuthCallback'; // ADD THIS IMPORT
 import './App.css';
 
 function App() {
@@ -29,14 +30,16 @@ function App() {
           <Route path="/admin/billing" element={<AdminBilling />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          {/* ADD THE OAUTH CALLBACK ROUTE - MUST BE BEFORE PROTECTED ROUTES */}
+          <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/posts"
             element={
@@ -54,22 +57,22 @@ function App() {
             }
           />
           <Route
-  path="/settings"
-  element={
-    <ProtectedRoute>
-        <Settings />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/messages"
-  element={
-    <ProtectedRoute>
-      <Messages />
-    </ProtectedRoute>
-  }
-/>          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <Messages />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/analytics"
             element={
               <ProtectedRoute>
