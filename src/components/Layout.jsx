@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  // CHANGED: Default is now COLLAPSED (true)
+  // Default is COLLAPSED (true)
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   const handleLogout = () => {
@@ -50,12 +50,11 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Sidebar */}
+      {/* Sidebar - Overlays content with z-index, does NOT push content */}
       <aside 
-        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-100 shadow-sm flex flex-col transition-all duration-300 z-50 ${
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-100 shadow-lg flex flex-col transition-all duration-300 z-50 ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
-        // ADDED: Hover to expand sidebar
         onMouseEnter={() => setIsCollapsed(false)}
         onMouseLeave={() => setIsCollapsed(true)}
       >
@@ -173,8 +172,8 @@ const Layout = ({ children }) => {
         </div>
       </aside>
       
-      {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'} min-h-screen bg-white`}>
+      {/* Main Content - Always has same margin, sidebar overlays on top */}
+      <main className={`flex-1 transition-all duration-300 ml-20 min-h-screen bg-white`}>
         <div className="p-6">
           {children}
         </div>
