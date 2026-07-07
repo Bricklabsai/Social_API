@@ -106,6 +106,32 @@ const Dashboard = () => {
     }
   }, [location.search]);
 
+  // Add this useEffect to your Dashboard component
+useEffect(() => {
+  // Handle OAuth callback messages from popup
+  const handleMessage = (event) => {
+    // Make sure the message is from our app
+    if (event.origin !== window.location.origin) return;
+    
+    if (event.data?.type === 'oauth-callback') {
+      const { platform, status, message } = event.data;
+      
+      if (status === 'success') {
+        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
+        fetchConnections();
+      } else {
+        const errorMsg = message || 'Unknown error';
+        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
+      }
+    }
+  };
+
+  window.addEventListener('message', handleMessage);
+  
+  return () => {
+    window.removeEventListener('message', handleMessage);
+  };
+}, []);
   const fetchConnections = async () => {
     try {
       setLoading(true);
