@@ -132,45 +132,52 @@ const Dashboard = () => {
     }
   };
 
-  const handleConnect = async (platform) => {
-    setActionInProgress(platform);
-    try {
-      const userStr = localStorage.getItem('user');
-      let userId = 1;
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          userId = user.id;
-        } catch (e) {}
-      }
-      
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      
-      const authWindow = window.open(
-        `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`,
-        `${platform}_auth`,
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-      
-      const checkInterval = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkInterval);
-          fetchConnections();
-          toast.success(`${platformDisplayNames[platform] || platform} connection updated`);
-        }
-      }, 500);
-      
-    } catch (error) {
-      console.error('Connection error:', error);
-      toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
-    } finally {
-      setActionInProgress(null);
+ const handleConnect = async (platform) => {
+  setActionInProgress(platform);
+  try {
+    const userStr = localStorage.getItem('user');
+    let userId = 1;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        userId = user.id;
+      } catch (e) {}
     }
-  };
-
+    
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    // Open the popup
+    const authWindow = window.open(
+      `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`,
+      `${platform}_auth`,
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+    
+    if (!authWindow) {
+      toast.error('Popup blocked. Please allow popups for this site.');
+      return;
+    }
+    
+    // Check if popup closed
+    const checkInterval = setInterval(() => {
+      if (authWindow.closed) {
+        clearInterval(checkInterval);
+        // Refresh connections when popup closes
+        fetchConnections();
+        toast.success(`${platformDisplayNames[platform] || platform} connection updated`);
+      }
+    }, 500);
+    
+  } catch (error) {
+    console.error('Connection error:', error);
+    toast.error(`Failed to connect ${platformDisplayNames[platform] || platform}`);
+  } finally {
+    setActionInProgress(null);
+  }
+};
   const handleDisconnect = async (platform) => {
     if (!window.confirm(`Are you sure you want to disconnect ${platformDisplayNames[platform] || platform}? This will remove your access token.`)) {
       return;
