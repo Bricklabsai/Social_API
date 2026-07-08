@@ -158,7 +158,7 @@ export const platforms = {
 };
 
 // ============================================
-// POSTS API - FIXED with longer timeout for uploads
+// POSTS API - FIXED with proper toast handling
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
@@ -167,26 +167,44 @@ export const posts = {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: 120000, // 2 minutes for file uploads
+    timeout: 120000,
   }),
   
-  // FIXED: Added longer timeout and progress tracking
   publishWithMedia: (formData) => {
+    let loadingToastId = null;
+    
     return api.post('/publish/upload-with-media', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 180000, // 3 minutes for media upload + publishing
+      timeout: 180000,
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
         console.log(`📤 Upload progress: ${percentCompleted}%`);
-        // You can use this to show a progress bar in the UI
+        
+        // Only update toast at key milestones
         if (percentCompleted === 100) {
-          toast.loading('Processing media...', { id: 'upload-progress' });
-        } else if (percentCompleted > 0 && percentCompleted < 100) {
-          toast.loading(`Uploading... ${percentCompleted}%`, { id: 'upload-progress' });
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId);
+          }
+          loadingToastId = toast.loading('Processing media...', { id: 'upload-progress' });
+        } else if (percentCompleted > 0 && percentCompleted < 100 && percentCompleted % 25 === 0) {
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId);
+          }
+          loadingToastId = toast.loading(`Uploading... ${percentCompleted}%`, { id: 'upload-progress' });
         }
       },
+    }).then(response => {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+      return response;
+    }).catch(error => {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+      throw error;
     });
   },
   
@@ -206,7 +224,6 @@ export const posts = {
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
 };
-
 // ============================================
 // ANALYTICS API
 // ============================================
