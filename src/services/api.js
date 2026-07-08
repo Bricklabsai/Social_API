@@ -10,7 +10,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 30000, // Default timeout for normal requests
 });
 
 // Request interceptor to add auth token
@@ -158,7 +158,7 @@ export const platforms = {
 };
 
 // ============================================
-// POSTS API
+// POSTS API - FIXED with longer timeout for uploads
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
@@ -167,12 +167,25 @@ export const posts = {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 120000, // 2 minutes for file uploads
   }),
   
+  // FIXED: Added longer timeout and progress tracking
   publishWithMedia: (formData) => {
     return api.post('/publish/upload-with-media', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+      },
+      timeout: 180000, // 3 minutes for media upload + publishing
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log(`📤 Upload progress: ${percentCompleted}%`);
+        // You can use this to show a progress bar in the UI
+        if (percentCompleted === 100) {
+          toast.loading('Processing media...', { id: 'upload-progress' });
+        } else if (percentCompleted > 0 && percentCompleted < 100) {
+          toast.loading(`Uploading... ${percentCompleted}%`, { id: 'upload-progress' });
+        }
       },
     });
   },
