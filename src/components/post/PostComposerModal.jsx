@@ -19,7 +19,6 @@ import { useAuth } from '../../context/AuthContext';
 import PlatformPreview from './PlatformPreview';
 import AIAssistant from './AIAssistant';
 import MentionTextarea from '../MentionTextarea';
-import { saveScheduledPost } from '../../utils/scheduledPosts';
 import {
   PLATFORM_IDS,
   PLATFORM_CONFIG,
@@ -255,18 +254,39 @@ const PostComposerModal = ({
         toast.error('Please set a schedule date and time');
         return;
       }
-      saveScheduledPost({
-        content,
-        platforms: selectedPlatforms,
-        scheduledDate,
-        scheduledTime,
-        hasMedia: !!selectedFile,
-        mediaType,
-      });
-      toast.success(`Post scheduled for ${scheduledDate} at ${scheduledTime}`);
-      resetForm();
-      onPublishSuccess?.();
-      onClose();
+
+      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+      if (new Date(scheduledAt) <= new Date()) {
+        toast.error('Scheduled time must be in the future');
+        return;
+      }
+
+      setPublishing(true);
+      try {
+        if (selectedFile) {
+          const formData = new FormData();
+          formData.append('platforms', JSON.stringify(selectedPlatforms));
+          formData.append('content', content);
+          formData.append('media_type', mediaType);
+          formData.append('file', selectedFile);
+          formData.append('scheduled_at', scheduledAt);
+          await posts.scheduleWithMedia(formData);
+        } else {
+          await posts.schedule({
+            platforms: selectedPlatforms,
+            content,
+            scheduled_at: scheduledAt,
+          });
+        }
+        toast.success(`Post scheduled for ${scheduledDate} at ${scheduledTime}`);
+        resetForm();
+        onPublishSuccess?.();
+        onClose();
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Failed to schedule post');
+      } finally {
+        setPublishing(false);
+      }
       return;
     }
 
@@ -303,7 +323,12 @@ const PostComposerModal = ({
 
       const { successful, total_platforms } = response.data;
       if (successful === total_platforms) {
-        toast.success(`Published to ${total_platforms} channel${total_platforms > 1 ? 's' : ''}!`);
+        const tiktokProcessing = response.data?.results?.tiktok?.processing;
+        toast.success(
+          tiktokProcessing
+            ? 'Video sent to TikTok — it may take a minute to finish processing'
+            : `Published to ${total_platforms} channel${total_platforms > 1 ? 's' : ''}!`
+        );
         resetForm();
         onPublishSuccess?.();
         onClose();
