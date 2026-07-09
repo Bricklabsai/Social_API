@@ -211,8 +211,10 @@ export const posts = {
   },
   
   publishBackground: (data) => api.post('/publish/background', data),
-  getPosts: (limit = 20, includeTwitterFeed = false) =>
-    api.get(`/publish/posts?limit=${limit}&include_twitter_feed=${includeTwitterFeed}`),
+  getPosts: (limit = 20, includeTwitterFeed = false, includeTiktokFeed = false) =>
+    api.get(
+      `/publish/posts?limit=${limit}&include_twitter_feed=${includeTwitterFeed}&include_tiktok_feed=${includeTiktokFeed}`
+    ),
   getPost: (id) => api.get(`/publish/posts/${id}`),
   deletePost: (id, deleteFromSocial = true) => {
     return api.delete(`/publish/posts/${id}?delete_from_social=${deleteFromSocial}`);

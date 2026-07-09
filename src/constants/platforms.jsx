@@ -5,6 +5,7 @@ import {
   FaYoutube,
   FaInstagram,
   FaWhatsapp,
+  FaTiktok,
 } from 'react-icons/fa';
 
 export const PLATFORM_IDS = [
@@ -13,6 +14,7 @@ export const PLATFORM_IDS = [
   'twitter',
   'linkedin',
   'youtube',
+  'tiktok',
   'whatsapp',
 ];
 
@@ -22,6 +24,7 @@ export const PLATFORM_DISPLAY_NAMES = {
   twitter: 'X (Twitter)',
   linkedin: 'LinkedIn',
   youtube: 'YouTube',
+  tiktok: 'TikTok',
   whatsapp: 'WhatsApp',
 };
 
@@ -31,6 +34,7 @@ export const PLATFORM_CHAR_LIMITS = {
   twitter: 280,
   linkedin: 3000,
   youtube: 5000,
+  tiktok: 2200,
   whatsapp: 4096,
 };
 
@@ -86,6 +90,17 @@ export const PLATFORM_CONFIG = {
     border: 'border-[#FF0000]/30',
     ring: 'ring-[#FF0000]/40',
     accent: '#FF0000',
+    supportsImage: false,
+    supportsVideo: true,
+    requiresMedia: true,
+  },
+  tiktok: {
+    icon: FaTiktok,
+    color: 'text-black',
+    bg: 'bg-black/10',
+    border: 'border-black/20',
+    ring: 'ring-black/30',
+    accent: '#000000',
     supportsImage: false,
     supportsVideo: true,
     requiresMedia: true,
