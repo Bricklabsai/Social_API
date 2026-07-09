@@ -159,7 +159,7 @@ const Analytics = () => {
   const platformIcons = {
     youtube: <FaYoutube className="text-red-500" size={20} />,
     facebook: <FaFacebook className="text-blue-600" size={20} />,
-    instagram: <FaInstagram className="text-pink-600" size={20} />,
+    instagram: <FaInstagram className="text-[#168eea]" size={20} />,
     twitter: <FaTwitter className="text-sky-500" size={20} />,
     linkedin: <FaLinkedin className="text-blue-700" size={20} />
   };
@@ -259,26 +259,22 @@ const Analytics = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <FiBarChart2 className="text-pink-600" size={28} />
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <FiBarChart2 className="text-[#168eea]" size={24} />
               Analytics
             </h1>
-            <p className="text-gray-500 mt-1 flex items-center gap-2">
-              <span className="text-sm">Track your social media performance across all platforms</span>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                {summary?.total_posts || 0} posts
-              </span>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Track performance across all platforms · {summary?.total_posts || 0} posts
             </p>
           </div>
           <button
             onClick={refreshAnalytics}
             disabled={refreshing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 mt-4 sm:mt-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg font-medium transition-colors disabled:opacity-50 mt-4 sm:mt-0 text-sm"
           >
             <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
             Refresh
@@ -303,7 +299,7 @@ const Analytics = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
-              <FiBarChart2 className="text-pink-600" size={18} />
+              <FiBarChart2 className="text-[#168eea]" size={18} />
               <h3 className="text-gray-700 font-medium">Total Engagement</h3>
             </div>
             <p className="text-2xl font-bold text-gray-800">{getTotalEngagement().toLocaleString()}</p>
@@ -330,7 +326,7 @@ const Analytics = () => {
         {/* Platform Breakdown */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <FiActivity className="text-pink-600" size={18} />
+            <FiActivity className="text-[#168eea]" size={18} />
             Platform Breakdown
           </h2>
           
@@ -391,7 +387,7 @@ const Analytics = () => {
         {/* Recent Posts */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <FiCalendar className="text-pink-600" size={18} />
+            <FiCalendar className="text-[#168eea]" size={18} />
             Recent Posts
           </h2>
           {recentPosts.length === 0 ? (
@@ -403,7 +399,7 @@ const Analytics = () => {
               {recentPosts.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-all cursor-pointer border border-gray-100 hover:border-pink-200"
+                  className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-all cursor-pointer border border-gray-100 hover:border-[#168eea]/30"
                   onClick={() => viewPostAnalytics(post.id)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
@@ -428,7 +424,7 @@ const Analytics = () => {
                         post.status === 'completed' ? 'bg-green-50 text-green-600' :
                         post.status === 'partial' ? 'bg-amber-50 text-amber-600' :
                         post.status === 'failed' ? 'bg-red-50 text-red-600' :
-                        'bg-pink-50 text-pink-600'
+                        'bg-pink-50 text-[#168eea]'
                       }`}>
                         {post.status}
                       </span>
@@ -437,7 +433,7 @@ const Analytics = () => {
                           e.stopPropagation();
                           viewPostAnalytics(post.id);
                         }}
-                        className="text-pink-600 hover:text-pink-700 text-sm font-medium transition-colors px-3 py-1 rounded-lg hover:bg-pink-50"
+                        className="text-[#168eea] hover:text-pink-700 text-sm font-medium transition-colors px-3 py-1 rounded-lg hover:bg-pink-50"
                       >
                         View Stats
                       </button>
@@ -455,7 +451,7 @@ const Analytics = () => {
             <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <FiBarChart2 className="text-pink-600" size={20} />
+                  <FiBarChart2 className="text-[#168eea]" size={20} />
                   Post Analytics
                 </h3>
                 <button onClick={() => setPostAnalytics(null)} className="text-gray-400 hover:text-gray-600 transition-colors text-2xl w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">✕</button>
@@ -469,14 +465,14 @@ const Analytics = () => {
                     {postAnalytics.analytics.map((analytic, idx) => {
                       const config = {
                         icon: platformIcons[analytic.platform],
-                        color: analytic.platform === 'instagram' ? 'text-pink-600' : 
+                        color: analytic.platform === 'instagram' ? 'text-[#168eea]' : 
                                analytic.platform === 'youtube' ? 'text-red-600' :
                                analytic.platform === 'facebook' ? 'text-blue-600' :
                                analytic.platform === 'twitter' ? 'text-sky-500' :
                                'text-blue-700'
                       };
                       return (
-                        <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-pink-200 transition-all">
+                        <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-[#168eea]/30 transition-all">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
                               {config.icon}

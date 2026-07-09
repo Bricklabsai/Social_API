@@ -211,26 +211,22 @@ const Comments = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <FiMessageSquare className="text-pink-600" size={28} />
-              Comments & Inbox
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <FiMessageSquare className="text-[#168eea]" size={24} />
+              Comments
             </h1>
-            <p className="text-gray-500 mt-1 flex items-center gap-2">
-              <span className="text-sm">Manage and reply to comments from all platforms</span>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                {commentList.length} total
-              </span>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Manage and reply to comments · {commentList.length} total
             </p>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 mt-4 sm:mt-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg font-medium transition-colors disabled:opacity-50 mt-4 sm:mt-0 text-sm"
           >
             <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
             Refresh
@@ -280,7 +276,7 @@ const Comments = () => {
             onClick={() => setSelectedPlatform('all')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
               selectedPlatform === 'all'
-                ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50'
+                ? 'bg-[#168eea] text-white shadow-sm'
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
             }`}
           >
@@ -292,7 +288,7 @@ const Comments = () => {
               onClick={() => setSelectedPlatform(platform)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                 selectedPlatform === platform
-                  ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50'
+                  ? 'bg-[#168eea] text-white shadow-sm'
                   : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
               }`}
             >
@@ -308,7 +304,7 @@ const Comments = () => {
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
               filterType === 'all'
-                ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50'
+                ? 'bg-[#168eea] text-white shadow-sm'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -406,7 +402,7 @@ const Comments = () => {
                           onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                           className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1 ${
                             replyingTo === comment.id
-                              ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50'
+                              ? 'bg-[#168eea] text-white shadow-sm'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
@@ -442,7 +438,7 @@ const Comments = () => {
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder={`Reply to ${comment.author || 'user'}...`}
-                          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+                          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 focus:border-transparent transition-all"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
@@ -454,7 +450,7 @@ const Comments = () => {
                           <button
                             onClick={() => handleReply(comment)}
                             disabled={sendingReply || !replyText.trim()}
-                            className="px-5 py-2.5 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-pink-300/50 disabled:opacity-50 flex items-center gap-2"
+                            className="px-5 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
                             {sendingReply ? <FaSpinner className="animate-spin" /> : <FiSend size={16} />}
                             Send

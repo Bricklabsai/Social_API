@@ -288,7 +288,7 @@ const Posts = () => {
       completed: { icon: <FaCheckCircle />, text: 'Success', color: 'text-green-600 bg-green-50' },
       partial: { icon: <FaExclamationTriangle />, text: 'Partial', color: 'text-amber-600 bg-amber-50' },
       failed: { icon: <FaExclamationTriangle />, text: 'Failed', color: 'text-red-600 bg-red-50' },
-      processing: { icon: <FaSpinner className="animate-spin" />, text: 'Processing', color: 'text-pink-600 bg-pink-50' },
+      processing: { icon: <FaSpinner className="animate-spin" />, text: 'Processing', color: 'text-[#168eea] bg-[#168eea]/10' },
     };
     const config = statusConfig[status] || statusConfig.processing;
     return (
@@ -313,7 +313,7 @@ const Posts = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white p-6">
+      <div className="min-h-screen bg-[#f8f9fb]">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
@@ -328,16 +328,15 @@ const Posts = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">My Posts</h1>
-              <p className="text-gray-500 mt-1">View and manage your published content</p>
-              <p className="text-sm text-gray-400 mt-1">Total posts: {userPosts.length}</p>
-            </div>
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Posts</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              View and manage your published content · {userPosts.length} total
+            </p>
+          </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
@@ -363,14 +362,13 @@ const Posts = () => {
                 </button>
               )}
             </div>
-          </div>
         </div>
 
         {/* Platform Filter */}
         {userPosts.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <FaFilter className="text-pink-600" size={14} />
+              <FaFilter className="text-[#168eea]" size={14} />
               <span className="text-sm font-medium text-gray-600">Filter by platform:</span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -378,8 +376,8 @@ const Posts = () => {
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   filter === 'all' 
-                    ? 'bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                    ? 'bg-[#168eea] text-white shadow-sm' 
+                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
                 }`}
               >
                 All Posts ({userPosts.length})
@@ -393,8 +391,8 @@ const Posts = () => {
                     onClick={() => setFilter(platform)}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       filter === platform 
-                        ? 'bg-gradient-to-r from-pink-600 via-pink-500 to-blue-600 text-white shadow-md shadow-pink-300/50' 
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                        ? 'bg-[#168eea] text-white shadow-sm' 
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
                     }`}
                   >
                     {config.icon}
@@ -426,9 +424,9 @@ const Posts = () => {
               return (
                 <div
                   key={post.id}
-                  className={`bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md hover:shadow-pink-100/50 transition-all duration-300 ${
+                  className={`bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 ${
                     isSelected
-                      ? 'border-pink-400 bg-pink-50/30'
+                      ? 'border-[#168eea] bg-[#168eea]/5'
                       : 'border-gray-100 hover:border-gray-200'
                   }`}
                 >
@@ -440,7 +438,7 @@ const Posts = () => {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => togglePostSelection(post.id)}
-                          className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                          className="w-4 h-4 text-[#168eea] rounded border-gray-300 focus:ring-[#168eea]"
                         />
                         <span className="text-sm text-gray-600">Select for deletion</span>
                       </label>
@@ -459,7 +457,7 @@ const Posts = () => {
                             e.stopPropagation();
                             navigate(`/posts/${post.id}`);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-pink-600 transition-colors rounded-lg hover:bg-pink-50"
+                          className="p-1.5 text-gray-400 hover:text-[#168eea] transition-colors rounded-lg hover:bg-[#168eea]/10"
                           title="View details"
                         >
                           <FaEye size={14} />

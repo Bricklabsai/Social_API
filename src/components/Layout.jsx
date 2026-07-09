@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  FiLogOut, FiUser, FiGrid, FiBookOpen, FiBarChart2, 
-  FiMessageSquare, FiSettings, FiChevronLeft, FiChevronRight
+import {
+  FiLogOut,
+  FiUser,
+  FiGrid,
+  FiBookOpen,
+  FiBarChart2,
+  FiMessageSquare,
+  FiSettings,
+  FiPlus,
+  FiMessageCircle,
+  FiCalendar,
 } from 'react-icons/fi';
-import { FaTwitter, FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaWhatsapp } from 'react-icons/fa';
-import { FiMessageCircle } from 'react-icons/fi';
-
+import { PLATFORM_IDS, getPlatformIcon } from '../constants/platforms';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  // Default is COLLAPSED (true)
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -23,90 +28,57 @@ const Layout = ({ children }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Navigation items
   const navItems = [
-    { path: '/dashboard', icon: FiGrid, label: 'Dashboard' },
+    { path: '/dashboard', icon: FiGrid, label: 'Publishing' },
+    { path: '/schedule', icon: FiCalendar, label: 'Schedule' },
     { path: '/posts', icon: FiBookOpen, label: 'Posts' },
     { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
-    { path: '/messages', icon: FiMessageCircle, label: 'Messages' }, 
+    { path: '/messages', icon: FiMessageCircle, label: 'Messages' },
     { path: '/comments', icon: FiMessageSquare, label: 'Comments' },
-    { path: '/settings', icon: FiSettings, label: 'Settings' }, 
+    { path: '/settings', icon: FiSettings, label: 'Settings' },
   ];
 
-  const platformIcons = {
-    facebook: <FaFacebook className="text-blue-600" size={16} />,
-    instagram: <FaInstagram className="text-pink-500" size={16} />,
-    twitter: <FaTwitter className="text-sky-400" size={16} />,
-    linkedin: <FaLinkedin className="text-blue-700" size={16} />,
-    youtube: <FaYoutube className="text-red-600" size={16} />,
-    whatsapp: <FaWhatsapp className="text-green-500" size={16} />,
-  };
-
-  const connectedPlatforms = ['facebook', 'instagram', 'linkedin', 'youtube'];
-
-  // Get user display name
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || 'user@example.com';
 
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Sidebar - Overlays content with z-index, does NOT push content */}
-      <aside 
-        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-100 shadow-lg flex flex-col transition-all duration-300 z-50 ${
-          isCollapsed ? 'w-20' : 'w-64'
+    <div className="min-h-screen bg-[#f8f9fb] flex">
+      <aside
+        className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200/80 flex flex-col transition-all duration-200 z-50 ${
+          isCollapsed ? 'w-[68px]' : 'w-60'
         }`}
-        onMouseEnter={() => setIsCollapsed(false)}
-        onMouseLeave={() => setIsCollapsed(true)}
       >
         {/* Logo */}
-        <div className={`px-4 py-4 border-b border-gray-100 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-lg flex items-center justify-center shadow-sm shadow-pink-200/50">
-                <span className="text-white font-bold text-sm">SH</span>
-              </div>
-              <span className="text-gray-800 font-semibold text-sm">SocialHub</span>
+        <div className="px-4 h-14 flex items-center border-b border-gray-100">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 bg-[#168eea] rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-xs">SH</span>
             </div>
-          )}
-          {isCollapsed && (
-            <div className="w-8 h-8 bg-gradient-to-br from-pink-400 via-pink-300 to-blue-300 rounded-lg flex items-center justify-center shadow-sm shadow-pink-200/50">
-              <span className="text-white font-bold text-sm">SH</span>
-            </div>
-          )}
+            {!isCollapsed && (
+              <span className="text-gray-900 font-semibold text-sm whitespace-nowrap">
+                SocialHub
+              </span>
+            )}
+          </div>
         </div>
-        
-        {/* Collapse Toggle - Shows when expanded */}
-        {!isCollapsed && (
+
+        {/* New Post CTA */}
+        <div className="px-3 py-3">
           <button
-            onClick={() => setIsCollapsed(true)}
-            className="absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-500 hover:border-pink-300 transition-all shadow-sm"
+            onClick={() => navigate('/dashboard?compose=true')}
+            className={`w-full flex items-center gap-2 bg-[#168eea] hover:bg-[#1378d4] text-white font-medium rounded-lg transition-colors ${
+              isCollapsed ? 'justify-center p-2.5' : 'px-4 py-2.5 text-sm'
+            }`}
+            title="New Post"
           >
-            <FiChevronLeft size={12} />
+            <FiPlus size={18} />
+            {!isCollapsed && <span>New Post</span>}
           </button>
-        )}
-        
-        {/* User Profile */}
-        <div className={`px-4 py-3 border-b border-gray-100 ${isCollapsed ? 'flex justify-center' : ''}`}>
-          {!isCollapsed ? (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center ring-2 ring-pink-200/50">
-                <FiUser size={18} className="text-pink-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-gray-800 font-medium text-sm truncate">{displayName}</p>
-                <p className="text-gray-400 text-xs truncate">{userEmail}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-9 h-9 bg-gradient-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center ring-2 ring-pink-200/50">
-              <FiUser size={18} className="text-pink-500" />
-            </div>
-          )}
         </div>
-        
+
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <div className="space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-1">
+          <div className="space-y-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -114,69 +86,86 @@ const Layout = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                     active
-                      ? 'bg-gradient-to-r from-pink-50 to-blue-50 text-pink-600 shadow-sm shadow-pink-100/50'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      ? 'bg-[#168eea]/10 text-[#168eea] font-medium'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   } ${isCollapsed ? 'justify-center' : ''}`}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <Icon size={20} className={active ? 'text-pink-500' : ''} />
+                  <Icon size={18} />
                   {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               );
             })}
           </div>
 
-          {/* Connected Platforms Section */}
           {!isCollapsed && (
             <div className="mt-6 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 px-3">Supported platforms</p>
-              <div className="space-y-1">
-                {connectedPlatforms.map((platform) => (
-                  <div key={platform} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm text-gray-500">
-                    {platformIcons[platform]}
-                    <span className="capitalize text-xs">{platform}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Show platform icons when collapsed */}
-          {isCollapsed && (
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <div className="flex flex-col items-center gap-2">
-                {connectedPlatforms.map((platform) => (
-                  <div key={platform} className="px-2 py-1" title={platform}>
-                    {platformIcons[platform]}
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2 px-3 font-semibold">
+                Channels
+              </p>
+              <div className="space-y-0.5">
+                {PLATFORM_IDS.slice(0, 4).map((platform) => (
+                  <div
+                    key={platform}
+                    className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-gray-500"
+                  >
+                    {getPlatformIcon(platform, 14)}
+                    <span className="capitalize">{platform}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </nav>
-        
-        {/* Logout */}
-        <div className={`px-3 py-3 border-t border-gray-100 ${isCollapsed ? 'flex justify-center' : ''}`}>
+
+        {/* User + collapse */}
+        <div className="border-t border-gray-100">
+          <div className={`px-3 py-3 ${isCollapsed ? 'flex flex-col items-center gap-2' : ''}`}>
+            {!isCollapsed ? (
+              <div className="flex items-center gap-2.5 mb-2 px-1">
+                <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <FiUser size={16} className="text-[#168eea]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-900 font-medium text-xs truncate">{displayName}</p>
+                  <p className="text-gray-400 text-[10px] truncate">{userEmail}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center">
+                <FiUser size={16} className="text-[#168eea]" />
+              </div>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className={`flex items-center gap-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors text-sm w-full ${
+                isCollapsed ? 'justify-center p-2' : 'px-3 py-2'
+              }`}
+              title="Logout"
+            >
+              <FiLogOut size={16} />
+              {!isCollapsed && <span className="text-xs">Logout</span>}
+            </button>
+          </div>
+
           <button
-            onClick={handleLogout}
-            className={`flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all text-sm w-full ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
-            title={isCollapsed ? 'Logout' : ''}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="w-full py-2 border-t border-gray-100 text-gray-400 hover:text-gray-600 text-xs transition-colors"
           >
-            <FiLogOut size={20} />
-            {!isCollapsed && <span>Logout</span>}
+            {isCollapsed ? '→' : '← Collapse'}
           </button>
         </div>
       </aside>
-      
-      {/* Main Content - Always has same margin, sidebar overlays on top */}
-      <main className={`flex-1 transition-all duration-300 ml-20 min-h-screen bg-white`}>
-        <div className="p-6">
-          {children}
-        </div>
+
+      <main
+        className={`flex-1 transition-all duration-200 min-h-screen ${
+          isCollapsed ? 'ml-[68px]' : 'ml-60'
+        }`}
+      >
+        <div className="p-6 md:p-8">{children}</div>
       </main>
     </div>
   );

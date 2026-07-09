@@ -401,7 +401,7 @@ useEffect(() => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex h-[calc(100vh-80px)]">
+      <div className="-mx-6 md:-mx-8 -my-6 md:-my-8 h-[calc(100vh-3rem)] flex bg-white rounded-xl border border-gray-100 overflow-hidden">
         <MessageListSkeleton />
         <ChatSkeleton />
       </div>
@@ -409,18 +409,18 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="flex h-[calc(100vh-80px)]">
+    <div className="-mx-6 md:-mx-8 -my-6 md:-my-8 h-[calc(100vh-3rem)]">
+      <div className="flex h-full bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
         {/* Left Panel - Conversation List */}
         <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-gray-100 bg-gray-50/30`}>
           {/* Header */}
           <div className="p-4 border-b border-gray-100 bg-white">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <FiMessageCircle className="text-pink-600" />
+                <FiMessageCircle className="text-[#168eea]" />
                 Inbox
               </h2>
-              <span className="text-xs bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">
+              <span className="text-xs bg-[#168eea]/10 text-[#168eea] px-2.5 py-1 rounded-full">
                 {filteredConversations.length} conversations
               </span>
             </div>
@@ -433,7 +433,7 @@ useEffect(() => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search messages..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 focus:border-transparent text-sm"
               />
             </div>
           </div>
@@ -444,7 +444,7 @@ useEffect(() => {
               onClick={() => handlePlatformFilter('all')}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 selectedPlatform === 'all'
-                  ? 'bg-linear-to-r from-pink-600 to-blue-600 text-white'
+                  ? 'bg-[#168eea] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -456,7 +456,7 @@ useEffect(() => {
                 onClick={() => handlePlatformFilter(platform.platform)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                   selectedPlatform === platform.platform
-                    ? 'bg-linear-to-r from-pink-600 to-blue-600 text-white'
+                    ? 'bg-[#168eea] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -480,7 +480,7 @@ useEffect(() => {
                   <button
                     onClick={() => setSelectedConversation(conv)}
                     className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-all text-left ${
-                      selectedConversation?.id === conv.id ? 'bg-pink-50' : 'bg-white'
+                      selectedConversation?.id === conv.id ? 'bg-[#168eea]/5' : 'bg-white'
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -504,7 +504,7 @@ useEffect(() => {
                             {conv.last_message.text || 'No message content'}
                           </p>
                           {conv.unread_count > 0 && (
-                            <span className="w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center shrink-0 ml-2">
+                            <span className="w-5 h-5 bg-[#168eea] text-white text-xs rounded-full flex items-center justify-center shrink-0 ml-2">
                               {conv.unread_count}
                             </span>
                           )}
@@ -587,7 +587,7 @@ useEffect(() => {
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                           isOutgoing
-                            ? 'bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-br-sm shadow-md shadow-pink-300/30'
+                            ? 'bg-[#168eea] text-white rounded-br-sm shadow-sm'
                             : 'bg-white border border-gray-100 shadow-sm rounded-bl-sm'
                         }`}
                       >
@@ -620,7 +620,7 @@ useEffect(() => {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={`Reply to ${selectedConversation.sender}...`}
-                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 focus:border-transparent text-sm"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -631,7 +631,7 @@ useEffect(() => {
                   <button
                     onClick={handleReply}
                     disabled={sendingReply || !replyText.trim()}
-                    className="w-11 h-11 bg-linear-to-r from-pink-600 via-pink-500 to-blue-600 text-white rounded-xl flex items-center justify-center hover:shadow-lg hover:shadow-pink-300/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    className="w-11 h-11 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                   >
                     {sendingReply ? (
                       <FaSpinner className="animate-spin" size={18} />
@@ -644,8 +644,8 @@ useEffect(() => {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
-              <div className="w-20 h-20 bg-linear-to-br from-pink-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
-                <FiMessageCircle size={40} className="text-pink-600" />
+              <div className="w-20 h-20 bg-[#168eea]/10 rounded-full flex items-center justify-center mb-4">
+                <FiMessageCircle size={40} className="text-[#168eea]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-700">Your Messages</h3>
               <p className="text-sm text-gray-400 text-center max-w-sm mt-1">
