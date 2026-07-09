@@ -61,7 +61,10 @@ const PostComposerModal = ({
     const fallback = PLATFORM_DISPLAY_NAMES[platform] || userName;
     return {
       name: username || fallback,
-      imageUrl: connection.profile_image_url || null,
+      imageUrl:
+        connection.profile_image_url ||
+        connection.accounts?.[0]?.avatar_url ||
+        null,
     };
   };
 
@@ -367,6 +370,7 @@ const PostComposerModal = ({
                 {connectedPlatforms.map((platform) => {
                   const isSelected = selectedPlatforms.includes(platform);
                   const config = PLATFORM_CONFIG[platform];
+                  const accountCount = platformConnections?.[platform]?.account_count || 1;
                   return (
                     <button
                       key={platform}
@@ -379,6 +383,11 @@ const PostComposerModal = ({
                     >
                       {getPlatformIcon(platform, 16)}
                       {PLATFORM_DISPLAY_NAMES[platform]}
+                      {accountCount > 1 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 text-gray-600">
+                          {accountCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

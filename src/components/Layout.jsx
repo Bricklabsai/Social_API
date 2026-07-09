@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,12 +14,15 @@ import {
   FiCalendar,
 } from 'react-icons/fi';
 import { PLATFORM_IDS, getPlatformIcon } from '../constants/platforms';
+import { platforms } from '../services/api';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [platformConnections, setPlatformConnections] = useState({});
+  const [profileImageUrl, setProfileImageUrl] = useState(user?.avatar_url || null);
 
   const handleLogout = () => {
     logout();
@@ -27,6 +30,25 @@ const Layout = ({ children }) => {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  useEffect(() => {
+    const loadConnections = async () => {
+      try {
+        const response = await platforms.getConnections();
+        const mapped = {};
+        (response.data?.platforms || []).forEach((p) => {
+          mapped[p.platform] = p;
+        });
+        setPlatformConnections(mapped);
+        if (response.data?.profile_image_url) {
+          setProfileImageUrl(response.data.profile_image_url);
+        }
+      } catch {
+        // Non-blocking for layout rendering.
+      }
+    };
+    loadConnections();
+  }, []);
 
   const navItems = [
     { path: '/dashboard', icon: FiGrid, label: 'Publishing' },
@@ -111,7 +133,15 @@ const Layout = ({ children }) => {
                     key={platform}
                     className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-gray-500"
                   >
-                    {getPlatformIcon(platform, 14)}
+                    {platformConnections[platform]?.accounts?.[0]?.avatar_url ? (
+                      <img
+                        src={platformConnections[platform].accounts[0].avatar_url}
+                        alt={platform}
+                        className="w-4 h-4 rounded-full object-cover"
+                      />
+                    ) : (
+                      getPlatformIcon(platform, 14)
+                    )}
                     <span className="capitalize">{platform}</span>
                   </div>
                 ))}
@@ -125,8 +155,12 @@ const Layout = ({ children }) => {
           <div className={`px-3 py-3 ${isCollapsed ? 'flex flex-col items-center gap-2' : ''}`}>
             {!isCollapsed ? (
               <div className="flex items-center gap-2.5 mb-2 px-1">
-                <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <FiUser size={16} className="text-[#168eea]" />
+                <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {profileImageUrl ? (
+                    <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiUser size={16} className="text-[#168eea]" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-gray-900 font-medium text-xs truncate">{displayName}</p>
@@ -134,8 +168,12 @@ const Layout = ({ children }) => {
                 </div>
               </div>
             ) : (
-              <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center">
-                <FiUser size={16} className="text-[#168eea]" />
+              <div className="w-8 h-8 bg-[#168eea]/10 rounded-full flex items-center justify-center overflow-hidden">
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <FiUser size={16} className="text-[#168eea]" />
+                )}
               </div>
             )}
 

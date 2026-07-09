@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FiZap, FiX, FiRefreshCw, FiHash, FiMinimize2, FiMaximize2, FiBriefcase } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
+import { assistant } from '../../services/api';
 
 const HASHTAG_SETS = {
   general: ['#socialmedia', '#contentcreator', '#digitalmarketing', '#growth', '#branding'],
@@ -53,44 +54,54 @@ const AIAssistant = ({ content, onApply, onClose }) => {
     setLoading(false);
   };
 
+  const requestAssistant = async (action) => {
+    setLoading(true);
+    setSuggestions([]);
+    try {
+      const response = await assistant.generate({
+        action,
+        content,
+        topic,
+      });
+      const items = response?.data?.suggestions || [];
+      setSuggestions(Array.isArray(items) ? items : []);
+    } catch (e) {
+      setSuggestions(['Assistant request failed. Please try again.']);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const actions = [
     {
       id: 'improve',
       label: 'Improve caption',
       icon: FiMaximize2,
-      run: () =>
-        simulateAI('improve', content
-          ? `${content.trim()}\n\n✨ What do you think? Let us know in the comments!`
-          : 'Start writing your caption and I\'ll help polish it for maximum engagement.'),
+      run: () => requestAssistant('improve'),
     },
     {
       id: 'hashtags',
       label: 'Add hashtags',
       icon: FiHash,
-      run: () => {
-        const tags = HASHTAG_SETS.general.slice(0, 5).join(' ');
-        simulateAI('hashtags', content ? `${content}\n\n${tags}` : tags);
-      },
+      run: () => requestAssistant('hashtags'),
     },
     {
       id: 'shorter',
       label: 'Make shorter',
       icon: FiMinimize2,
-      run: () =>
-        simulateAI('shorter', content ? TONE_REWRITES.shorter(content) : 'Write something first, then I\'ll trim it down.'),
+      run: () => requestAssistant('shorter'),
     },
     {
       id: 'professional',
       label: 'Professional tone',
       icon: FiBriefcase,
-      run: () =>
-        simulateAI('professional', content ? TONE_REWRITES.professional(content) : 'Add your draft and I\'ll make it more professional.'),
+      run: () => requestAssistant('professional'),
     },
     {
       id: 'ideas',
       label: 'Generate ideas',
       icon: FiZap,
-      run: () => simulateAI('ideas', generateIdeas(topic || 'social media')),
+      run: () => requestAssistant('ideas'),
     },
   ];
 

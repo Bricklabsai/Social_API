@@ -101,7 +101,8 @@ export const platforms = {
         }));
       }
       
-      return { data: { platforms: platformsData } };
+      const profileImageUrl = response.data?.profile_image_url || null;
+      return { data: { platforms: platformsData, profile_image_url: profileImageUrl } };
     } catch (error) {
       console.error('Failed to fetch connections:', error);
       throw error;
@@ -153,7 +154,8 @@ export const platforms = {
     }
   },
   
-  disconnect: (platform) => api.delete(`/auth/${platform}/tokens`),
+  disconnect: (platform, tokenId = null) =>
+    api.delete(`/auth/${platform}/tokens${tokenId ? `?token_id=${tokenId}` : ''}`),
   getStatus: (platform) => api.get(`/auth/${platform}/tokens`),
 };
 
@@ -286,6 +288,21 @@ export const mentions = {
     api.get('/mentions/twitter', {
       params: { q: query, limit },
     }),
+};
+
+// ============================================
+// ASSISTANT API
+// ============================================
+export const assistant = {
+  generate: (data) => api.post('/assistant/generate', data),
+};
+
+// ============================================
+// TEAM API
+// ============================================
+export const team = {
+  list: () => api.get('/users/me/team'),
+  add: (data) => api.post('/users/me/team', data),
 };
 
 // ============================================

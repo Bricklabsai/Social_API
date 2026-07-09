@@ -88,6 +88,13 @@ const Dashboard = () => {
       }
 
       setPlatformConnections(connectionsObj);
+      if (response.data?.profile_image_url) {
+        const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem(
+          'user',
+          JSON.stringify({ ...existingUser, avatar_url: response.data.profile_image_url })
+        );
+      }
     } catch (error) {
       console.error('Failed to fetch connections:', error);
       toast.error('Failed to load platform connections');
@@ -157,15 +164,23 @@ const Dashboard = () => {
               Manage and schedule content across your social channels
             </p>
           </div>
-          {hasAnyConnection && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowComposer(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white font-semibold rounded-lg transition-colors shadow-sm"
+              onClick={() => window.location.hash = '#channels'}
+              className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors text-sm"
             >
-              <FiPlus size={18} />
-              New Post
+              Connect Channel
             </button>
-          )}
+            {hasAnyConnection && (
+              <button
+                onClick={() => setShowComposer(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white font-semibold rounded-lg transition-colors shadow-sm"
+              >
+                <FiPlus size={18} />
+                New Post
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick action cards */}
@@ -239,7 +254,7 @@ const Dashboard = () => {
         )}
 
         {/* Channels section */}
-        <div className="mb-8">
+        <div id="channels" className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Channels</h2>
             <span className="text-sm text-gray-500">
@@ -294,6 +309,11 @@ const Dashboard = () => {
                               <FaCheckCircle size={10} />
                               Connected
                             </span>
+                            {(connection?.account_count || 0) > 1 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                {connection.account_count} accounts
+                              </span>
+                            )}
                             <button
                               onClick={() => handleDisconnect(platform)}
                               disabled={isInProgress}

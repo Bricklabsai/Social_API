@@ -22,7 +22,12 @@ export const AuthProvider = ({ children }) => {
             if (parsedUser && parsedUser.id) {
               setUser(parsedUser);
               // Verify token is still valid
-              await auth.me();
+              const me = await auth.me();
+              if (me?.data) {
+                const refreshed = { ...parsedUser, ...me.data };
+                setUser(refreshed);
+                localStorage.setItem('user', JSON.stringify(refreshed));
+              }
             }
           } catch (parseError) {
             console.error('Failed to parse user data:', parseError);
