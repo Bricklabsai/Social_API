@@ -12,6 +12,8 @@ import {
   FaRegHeart,
   FaRegComment,
   FaRegBookmark,
+  FaPoll,
+  FaRegSmile,
 } from 'react-icons/fa';
 import { FiMoreHorizontal, FiSend, FiThumbsUp } from 'react-icons/fi';
 import {
@@ -21,7 +23,7 @@ import {
   getPlatformIcon,
 } from '../../constants/platforms';
 
-const Avatar = ({ name, size = 'md' }) => {
+const Avatar = ({ name, imageUrl, size = 'md' }) => {
   const initials = (name || 'U')
     .split(' ')
     .map((n) => n[0])
@@ -30,6 +32,16 @@ const Avatar = ({ name, size = 'md' }) => {
     .toUpperCase();
 
   const sizeClass = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
+
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt={name || 'Profile'}
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
 
   return (
     <div
@@ -110,10 +122,10 @@ const CharCount = ({ content, platform }) => {
   );
 };
 
-const FacebookPreview = ({ content, mediaUrl, mediaType, userName }) => (
+const FacebookPreview = ({ content, mediaUrl, mediaType, userName, profileImageUrl }) => (
   <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
     <div className="p-3 flex items-start gap-2">
-      <Avatar name={userName} />
+      <Avatar name={userName} imageUrl={profileImageUrl} />
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm text-gray-900">{userName}</p>
         <p className="text-xs text-gray-500 flex items-center gap-1">
@@ -146,10 +158,10 @@ const FacebookPreview = ({ content, mediaUrl, mediaType, userName }) => (
   </div>
 );
 
-const InstagramPreview = ({ content, mediaUrl, mediaType, userName }) => (
+const InstagramPreview = ({ content, mediaUrl, mediaType, userName, profileImageUrl }) => (
   <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden max-w-sm mx-auto">
     <div className="p-3 flex items-center gap-2 border-b border-gray-100">
-      <Avatar name={userName} size="sm" />
+      <Avatar name={userName} imageUrl={profileImageUrl} size="sm" />
       <p className="font-semibold text-sm text-gray-900 flex-1">{userName}</p>
       <FiMoreHorizontal className="text-gray-600" />
     </div>
@@ -179,9 +191,9 @@ const InstagramPreview = ({ content, mediaUrl, mediaType, userName }) => (
   </div>
 );
 
-const TwitterPreview = ({ content, mediaUrl, mediaType, userName }) => {
+const TwitterPreview = ({ content, mediaUrl, mediaType, userName, profileImageUrl, isThreadMode }) => {
   const lines = content?.split('\n').filter((l) => l.trim()) || [];
-  const isThread = lines.length > 1;
+  const isThread = isThreadMode && lines.length > 1;
 
   if (isThread) {
     return (
@@ -192,7 +204,7 @@ const TwitterPreview = ({ content, mediaUrl, mediaType, userName }) => {
             className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 relative"
           >
             <div className="flex gap-2">
-              <Avatar name={userName} size="sm" />
+              <Avatar name={userName} imageUrl={profileImageUrl} size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-sm text-gray-900">{userName}</span>
@@ -226,7 +238,7 @@ const TwitterPreview = ({ content, mediaUrl, mediaType, userName }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
       <div className="flex gap-2">
-        <Avatar name={userName} size="sm" />
+        <Avatar name={userName} imageUrl={profileImageUrl} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <span className="font-bold text-sm text-gray-900">{userName}</span>
@@ -247,16 +259,21 @@ const TwitterPreview = ({ content, mediaUrl, mediaType, userName }) => {
             <FaHeart size={14} />
             <FaShare size={14} />
           </div>
+          <div className="flex items-center gap-4 mt-3 text-gray-400 text-xs">
+            <FaRegSmile size={13} />
+            <FaPoll size={13} />
+            <FaBookmark size={13} />
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const LinkedInPreview = ({ content, mediaUrl, mediaType, userName }) => (
+const LinkedInPreview = ({ content, mediaUrl, mediaType, userName, profileImageUrl }) => (
   <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
     <div className="p-3 flex items-start gap-2">
-      <Avatar name={userName} />
+      <Avatar name={userName} imageUrl={profileImageUrl} />
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm text-gray-900">{userName}</p>
         <p className="text-xs text-gray-500">Professional title · 1st</p>
@@ -341,7 +358,15 @@ const previewComponents = {
   whatsapp: WhatsAppPreview,
 };
 
-const PlatformPreview = ({ platform, content, mediaUrl, mediaType, userName }) => {
+const PlatformPreview = ({
+  platform,
+  content,
+  mediaUrl,
+  mediaType,
+  userName,
+  profileImageUrl,
+  isThreadMode = false,
+}) => {
   const PreviewComponent = previewComponents[platform];
   const config = PLATFORM_CONFIG[platform];
 
@@ -366,6 +391,8 @@ const PlatformPreview = ({ platform, content, mediaUrl, mediaType, userName }) =
         mediaUrl={mediaUrl}
         mediaType={mediaType}
         userName={userName}
+        profileImageUrl={profileImageUrl}
+        isThreadMode={isThreadMode}
       />
     </div>
   );

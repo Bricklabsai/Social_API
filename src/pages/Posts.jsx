@@ -156,6 +156,35 @@ const getPlatformDisplay = (platform) => {
   };
 };
 
+const getPlatformPostLinks = (post) => {
+  if (!post?.analytics || !Array.isArray(post.analytics)) return [];
+  return post.analytics
+    .filter((item) => item?.platform && item?.platform_post_id)
+    .map((item) => {
+      if (item.platform === 'twitter') {
+        return {
+          platform: 'twitter',
+          label: 'View on X',
+          url: `https://x.com/i/web/status/${item.platform_post_id}`,
+        };
+      }
+      if (item.platform === 'linkedin') {
+        return {
+          platform: 'linkedin',
+          label: 'LinkedIn post id',
+          url: null,
+          id: item.platform_post_id,
+        };
+      }
+      return {
+        platform: item.platform,
+        label: `${item.platform} post id`,
+        url: null,
+        id: item.platform_post_id,
+      };
+    });
+};
+
 const Posts = () => {
   const navigate = useNavigate();
   const [userPosts, setUserPosts] = useState([]);
@@ -164,6 +193,7 @@ const Posts = () => {
   const [deleting, setDeleting] = useState(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState([]);
+  const [twitterFeed, setTwitterFeed] = useState([]);
 
   useEffect(() => {
     fetchPosts();
@@ -172,7 +202,7 @@ const Posts = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await posts.getPosts(50);
+      const response = await posts.getPosts(50, true);
       
       let postsData = [];
       if (response.data && response.data.posts) {
@@ -189,6 +219,7 @@ const Posts = () => {
       }));
       
       setUserPosts(processedPosts);
+      setTwitterFeed(response.data?.twitter_feed || []);
     } catch (error) {
       console.error('Failed to fetch posts:', error);
       toast.error('Failed to load posts');
@@ -405,6 +436,29 @@ const Posts = () => {
         )}
 
         {/* Posts Grid */}
+        {twitterFeed.length > 0 && (
+          <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent tweets from X</h2>
+            <div className="space-y-2 max-h-64 overflow-auto">
+              {twitterFeed.map((tweet) => (
+                <a
+                  key={tweet.id}
+                  href={tweet.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block p-3 rounded-lg border border-gray-100 hover:border-[#168eea]/30 hover:bg-[#168eea]/5 transition-colors"
+                >
+                  <p className="text-sm text-gray-700 line-clamp-3">{tweet.text}</p>
+                  <div className="mt-2 text-xs text-gray-400 flex gap-3">
+                    <span>❤ {tweet.likes}</span>
+                    <span>↺ {tweet.retweets}</span>
+                    <span>💬 {tweet.replies}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         {filteredPosts.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
             <div className="text-6xl mb-4">📝</div>
@@ -418,6 +472,7 @@ const Posts = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPosts.map((post) => {
               const platforms = post.detectedPlatforms || ['unknown'];
+              const postLinks = getPlatformPostLinks(post);
               const isSelected = selectedPosts.includes(post.id);
               const isDeleting = deleting === post.id;
               
@@ -527,6 +582,30 @@ const Posts = () => {
                     {post.media_type && (
                       <div className="text-xs text-gray-400 mt-2">
                         📎 {post.media_type}
+                      </div>
+                    )}
+                    {postLinks.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {postLinks.map((link, idx) =>
+                          link.url ? (
+                            <a
+                              key={`${link.platform}-${idx}`}
+                              href={link.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-[#168eea] hover:underline"
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <span
+                              key={`${link.platform}-${idx}`}
+                              className="text-xs text-gray-400"
+                            >
+                              {link.label}: {link.id}
+                            </span>
+                          )
+                        )}
                       </div>
                     )}
                   </div>

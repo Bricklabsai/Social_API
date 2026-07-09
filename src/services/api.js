@@ -209,7 +209,8 @@ export const posts = {
   },
   
   publishBackground: (data) => api.post('/publish/background', data),
-  getPosts: (limit = 20) => api.get(`/publish/posts?limit=${limit}`),
+  getPosts: (limit = 20, includeTwitterFeed = false) =>
+    api.get(`/publish/posts?limit=${limit}&include_twitter_feed=${includeTwitterFeed}`),
   getPost: (id) => api.get(`/publish/posts/${id}`),
   deletePost: (id, deleteFromSocial = true) => {
     return api.delete(`/publish/posts/${id}?delete_from_social=${deleteFromSocial}`);
@@ -222,6 +223,7 @@ export const posts = {
   },
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
+  publishTwitterPoll: (data) => api.post('/publish/twitter/poll', data),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
 };
 // ============================================

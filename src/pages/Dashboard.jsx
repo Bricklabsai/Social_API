@@ -270,7 +270,15 @@ const Dashboard = () => {
                           isConnected ? 'bg-[#168eea]/5' : 'bg-gray-50'
                         }`}
                       >
-                        {getPlatformIcon(platform, 22)}
+                        {isConnected && connection?.profile_image_url ? (
+                          <img
+                            src={connection.profile_image_url}
+                            alt={connection?.username || displayName}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          getPlatformIcon(platform, 22)
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p

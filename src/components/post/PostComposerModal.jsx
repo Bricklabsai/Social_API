@@ -9,6 +9,8 @@ import {
   FiChevronDown,
   FiAlertCircle,
   FiZap,
+  FiSmile,
+  FiBarChart2,
 } from 'react-icons/fi';
 import { FaSpinner, FaInfoCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -47,8 +49,22 @@ const PostComposerModal = ({
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [showAI, setShowAI] = useState(false);
+  const [threadModeEnabled, setThreadModeEnabled] = useState(false);
+  const [pollEnabled, setPollEnabled] = useState(false);
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollDurationMinutes, setPollDurationMinutes] = useState(1440);
 
   const userName = user?.full_name || user?.email?.split('@')[0] || 'Your Account';
+  const getPlatformProfile = (platform) => {
+    const connection = platformConnections?.[platform] || {};
+    const username = connection.username || connection.platform_user_name;
+    const fallback = PLATFORM_DISPLAY_NAMES[platform] || userName;
+    return {
+      name: username || fallback,
+      imageUrl: connection.profile_image_url || null,
+    };
+  };
+
 
   const connectedPlatforms = PLATFORM_IDS.filter(
     (p) => platformConnections[p]?.connected
@@ -65,6 +81,10 @@ const PostComposerModal = ({
     setScheduledDate('');
     setScheduledTime('');
     setShowAI(false);
+    setThreadModeEnabled(false);
+    setPollEnabled(false);
+    setPollOptions(['', '']);
+    setPollDurationMinutes(1440);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [mediaPreviewUrl]);
 
@@ -166,9 +186,10 @@ const PostComposerModal = ({
   };
 
   const isThreadMode =
+    threadModeEnabled &&
     selectedPlatforms.includes('twitter') &&
-    selectedPlatforms.length === 1 &&
-    content.split('\n').filter((l) => l.trim()).length > 1;
+    selectedPlatforms.length === 1;
+  const canUseTwitterPoll = selectedPlatforms.length === 1 && selectedPlatforms[0] === 'twitter';
 
   const hasInstagram = selectedPlatforms.includes('instagram');
   const hasMediaRequired = selectedPlatforms.some((p) => PLATFORM_CONFIG[p]?.requiresMedia);
@@ -188,7 +209,8 @@ const PostComposerModal = ({
     !needsMedia &&
     !hasInstagram &&
     !getCharStatus() &&
-    !selectedFile;
+    !selectedFile &&
+    !(pollEnabled && selectedFile);
 
   const canPublishMedia =
     content.trim() &&
@@ -217,6 +239,13 @@ const PostComposerModal = ({
       toast.error('Selected platforms require media');
       return;
     }
+    if (pollEnabled && canUseTwitterPoll) {
+      const options = pollOptions.map((opt) => opt.trim()).filter(Boolean);
+      if (options.length < 2) {
+        toast.error('Please provide at least 2 poll options');
+        return;
+      }
+    }
 
     if (scheduleMode === 'later') {
       if (!scheduledDate || !scheduledTime) {
@@ -241,7 +270,15 @@ const PostComposerModal = ({
     setPublishing(true);
     try {
       let response;
-      if (withMedia && selectedFile) {
+      if (pollEnabled && canUseTwitterPoll && !withMedia) {
+        const options = pollOptions.map((opt) => opt.trim()).filter(Boolean);
+        response = await posts.publishTwitterPoll({
+          text: content,
+          options,
+          duration_minutes: pollDurationMinutes,
+        });
+        response = { data: { successful: 1, total_platforms: 1 } };
+      } else if (withMedia && selectedFile) {
         const formData = new FormData();
         formData.append('platforms', JSON.stringify(selectedPlatforms));
         formData.append('content', content);
@@ -249,10 +286,16 @@ const PostComposerModal = ({
         formData.append('file', selectedFile);
         response = await posts.publishWithMedia(formData);
       } else {
-        response = await posts.publish({
-          platforms: selectedPlatforms,
-          content,
-        });
+        const threadLines = content.split('\n').map((line) => line.trim()).filter(Boolean);
+        if (isThreadMode && selectedPlatforms.length === 1 && selectedPlatforms[0] === 'twitter' && threadLines.length > 1) {
+          await posts.postThread(threadLines);
+          response = { data: { successful: 1, total_platforms: 1 } };
+        } else {
+          response = await posts.publish({
+            platforms: selectedPlatforms,
+            content,
+          });
+        }
       }
 
       const { successful, total_platforms } = response.data;
@@ -350,6 +393,71 @@ const PostComposerModal = ({
 
             {/* Content Editor */}
             <div className="flex-1 px-6 py-4 overflow-y-auto">
+              {selectedPlatforms.includes('twitter') && selectedPlatforms.length === 1 && (
+                <div className="mb-3 flex items-center gap-3">
+                  <button
+                    onClick={() => setThreadModeEnabled((prev) => !prev)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      threadModeEnabled
+                        ? 'bg-[#1DA1F2]/10 text-[#1DA1F2] border-[#1DA1F2]/30'
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {threadModeEnabled ? 'Thread mode on' : 'Thread mode off'}
+                  </button>
+                  <p className="text-xs text-gray-400">
+                    Multi-line text stays as one tweet unless thread mode is enabled.
+                  </p>
+                </div>
+              )}
+              {pollEnabled && canUseTwitterPoll && (
+                <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Poll options</p>
+                  {pollOptions.map((option, idx) => (
+                    <input
+                      key={idx}
+                      value={option}
+                      onChange={(e) =>
+                        setPollOptions((prev) => prev.map((v, i) => (i === idx ? e.target.value : v)))
+                      }
+                      placeholder={`Option ${idx + 1}`}
+                      className="w-full mb-2 px-3 py-2 text-sm border border-gray-200 rounded-lg"
+                    />
+                  ))}
+                  {pollOptions.length < 4 && (
+                    <button
+                      onClick={() => setPollOptions((prev) => [...prev, ''])}
+                      className="text-xs text-[#168eea] hover:underline"
+                    >
+                      + Add option
+                    </button>
+                  )}
+                  {pollOptions.length > 2 && (
+                    <button
+                      onClick={() => setPollOptions((prev) => prev.slice(0, -1))}
+                      className="ml-3 text-xs text-red-500 hover:underline"
+                    >
+                      Remove last
+                    </button>
+                  )}
+                  <div className="mt-2">
+                    <label className="text-xs text-gray-500 mr-2">Duration</label>
+                    <select
+                      value={pollDurationMinutes}
+                      onChange={(e) => setPollDurationMinutes(Number(e.target.value))}
+                      className="text-xs border border-gray-200 rounded px-2 py-1"
+                    >
+                      <option value={30}>30 min</option>
+                      <option value={60}>1 hour</option>
+                      <option value={360}>6 hours</option>
+                      <option value={1440}>1 day</option>
+                      <option value={4320}>3 days</option>
+                      <option value={10080}>7 days</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <MentionTextarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -436,6 +544,22 @@ const PostComposerModal = ({
               >
                 <FiVideo size={20} />
               </button>
+              <button
+                onClick={() => setContent((prev) => `${prev}${prev ? ' ' : ''}😊`)}
+                disabled={selectedPlatforms.length === 0}
+                className="p-2 text-gray-500 hover:text-[#168eea] hover:bg-[#168eea]/10 rounded-lg transition-colors disabled:opacity-40"
+                title="Add emoji"
+              >
+                <FiSmile size={20} />
+              </button>
+              <button
+                onClick={() => setPollEnabled((prev) => !prev)}
+                disabled={!canUseTwitterPoll || !!selectedFile}
+                className="p-2 text-gray-500 hover:text-[#168eea] hover:bg-[#168eea]/10 rounded-lg transition-colors disabled:opacity-40"
+                title="Add poll (X)"
+              >
+                <FiBarChart2 size={20} />
+              </button>
             </div>
 
             {/* Mobile preview */}
@@ -467,7 +591,9 @@ const PostComposerModal = ({
                     content={content}
                     mediaUrl={mediaPreviewUrl}
                     mediaType={mediaType}
-                    userName={userName}
+                    userName={getPlatformProfile(activePreviewPlatform).name}
+                    profileImageUrl={getPlatformProfile(activePreviewPlatform).imageUrl}
+                    isThreadMode={isThreadMode}
                   />
                 </>
               ) : (
@@ -519,7 +645,9 @@ const PostComposerModal = ({
                   content={content}
                   mediaUrl={mediaPreviewUrl}
                   mediaType={mediaType}
-                  userName={userName}
+                  userName={getPlatformProfile(activePreviewPlatform).name}
+                  profileImageUrl={getPlatformProfile(activePreviewPlatform).imageUrl}
+                  isThreadMode={isThreadMode}
                 />
               ) : null}
 
