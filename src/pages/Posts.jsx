@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { posts } from '../services/api';
 import { 
-  FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp,
+  FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp, FaTiktok,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaTrash,
   FaChartLine, FaGlobe, FaFilter, FaTrashAlt
 } from 'react-icons/fa';
@@ -62,6 +62,12 @@ const platformConfig = {
     name: 'YouTube',
     color: 'text-red-600',
     bg: 'bg-red-50'
+  },
+  tiktok: {
+    icon: <FaTiktok className="text-black" size={16} />,
+    name: 'TikTok',
+    color: 'text-black',
+    bg: 'bg-gray-50'
   },
 };
 
@@ -194,6 +200,7 @@ const Posts = () => {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState([]);
   const [twitterFeed, setTwitterFeed] = useState([]);
+  const [tiktokFeed, setTiktokFeed] = useState([]);
 
   useEffect(() => {
     fetchPosts();
@@ -202,7 +209,7 @@ const Posts = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await posts.getPosts(50, true);
+      const response = await posts.getPosts(50, true, true);
       
       let postsData = [];
       if (response.data && response.data.posts) {
@@ -220,6 +227,7 @@ const Posts = () => {
       
       setUserPosts(processedPosts);
       setTwitterFeed(response.data?.twitter_feed || []);
+      setTiktokFeed(response.data?.tiktok_feed || []);
     } catch (error) {
       console.error('Failed to fetch posts:', error);
       toast.error('Failed to load posts');
@@ -453,6 +461,40 @@ const Posts = () => {
                     <span>❤ {tweet.likes}</span>
                     <span>↺ {tweet.retweets}</span>
                     <span>💬 {tweet.replies}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {tiktokFeed.length > 0 && (
+          <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent videos from TikTok</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {tiktokFeed.map((video) => (
+                <a
+                  key={video.id}
+                  href={video.share_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-lg border border-gray-100 hover:border-black/20 hover:bg-gray-50 transition-colors overflow-hidden"
+                >
+                  {video.cover_image_url && (
+                    <img
+                      src={video.cover_image_url}
+                      alt={video.title || 'TikTok video'}
+                      className="w-full h-36 object-cover"
+                    />
+                  )}
+                  <div className="p-3">
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {video.title || video.description || 'TikTok video'}
+                    </p>
+                    <div className="mt-2 text-xs text-gray-400 flex gap-3">
+                      <span>▶ {video.view_count ?? 0}</span>
+                      <span>❤ {video.like_count ?? 0}</span>
+                      <span>💬 {video.comment_count ?? 0}</span>
+                    </div>
                   </div>
                 </a>
               ))}
