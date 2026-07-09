@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
+import MentionTextarea from '../components/MentionTextarea';
 import { platforms, posts } from '../services/api';
 import { 
   FaFacebook, FaTwitter, FaLinkedin, FaYoutube, FaInstagram, FaWhatsapp,
@@ -478,12 +479,13 @@ const Dashboard = () => {
                   Content
                 </div>
               </label>
-              <textarea
+              <MentionTextarea
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
+                enableMentions={hasTwitter}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
                 rows={isThreadMode ? 6 : 4}
-                placeholder="What's on your mind?"
+                placeholder={hasTwitter ? "What's on your mind? Type @ to mention someone on X" : "What's on your mind?"}
               />
               {isThreadMode && (
                 <p className="text-xs text-pink-600 mt-1">
