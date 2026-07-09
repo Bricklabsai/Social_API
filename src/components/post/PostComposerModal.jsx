@@ -311,7 +311,17 @@ const PostComposerModal = ({
         toast.warning(`Partially published: ${successful}/${total_platforms}`);
         onPublishSuccess?.();
       } else {
-        toast.error('Publishing failed. Check your connections.');
+        const resultErrors = Object.entries(response.data?.results || {})
+          .filter(([, result]) => result && result.success === false)
+          .map(([platform, result]) => {
+            const name = PLATFORM_DISPLAY_NAMES[platform] || platform;
+            return `${name}: ${result.error || 'failed'}`;
+          });
+        toast.error(
+          resultErrors.length > 0
+            ? resultErrors.join(' · ')
+            : 'Publishing failed. Check your connections.'
+        );
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to publish');
