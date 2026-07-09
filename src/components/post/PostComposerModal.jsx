@@ -16,6 +16,7 @@ import { posts } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PlatformPreview from './PlatformPreview';
 import AIAssistant from './AIAssistant';
+import MentionTextarea from '../MentionTextarea';
 import { saveScheduledPost } from '../../utils/scheduledPosts';
 import {
   PLATFORM_IDS,
@@ -349,10 +350,15 @@ const PostComposerModal = ({
 
             {/* Content Editor */}
             <div className="flex-1 px-6 py-4 overflow-y-auto">
-              <textarea
+              <MentionTextarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="What would you like to share?"
+                enableMentions={selectedPlatforms.includes('twitter')}
+                placeholder={
+                  selectedPlatforms.includes('twitter')
+                    ? "What would you like to share? Type @ to mention on X"
+                    : 'What would you like to share?'
+                }
                 rows={isThreadMode ? 8 : 6}
                 className="w-full resize-none text-gray-800 placeholder-gray-400 focus:outline-none text-base leading-relaxed min-h-[160px]"
               />

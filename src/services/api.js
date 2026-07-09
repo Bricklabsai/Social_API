@@ -277,6 +277,16 @@ export const apiKeys = {
 };
 
 // ============================================
+// MENTIONS API
+// ============================================
+export const mentions = {
+  searchTwitter: (query, limit = 8) =>
+    api.get('/mentions/twitter', {
+      params: { q: query, limit },
+    }),
+};
+
+// ============================================
 // SETTINGS API - FIXED
 // ============================================
 export const settings = {

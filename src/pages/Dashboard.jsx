@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { platforms } from '../services/api';
 import PostComposerModal from '../components/post/PostComposerModal';
@@ -328,7 +328,7 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Connect your channels</h3>
             <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
               Link your social accounts above to start creating and scheduling posts with live
-              previews — just like Buffer.
+              previews ΓÇö just like Buffer.
             </p>
           </div>
         )}
