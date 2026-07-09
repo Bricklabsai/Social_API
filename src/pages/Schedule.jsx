@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -9,15 +9,32 @@ import {
 } from 'react-icons/fi';
 import { getPlatformIcon, PLATFORM_DISPLAY_NAMES } from '../constants/platforms';
 import PostComposerModal from '../components/post/PostComposerModal';
-import { platforms } from '../services/api';
+import { platforms, posts } from '../services/api';
 import toast from 'react-hot-toast';
 
-import { getScheduledPosts, deleteScheduledPost } from '../utils/scheduledPosts';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
+
+const toLocalDateKey = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const toLocalTime = (isoString) => {
+  if (!isoString) return '';
+  return new Date(isoString).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
 
 const Schedule = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -25,11 +42,25 @@ const Schedule = () => {
   const [view, setView] = useState('calendar');
   const [showComposer, setShowComposer] = useState(false);
   const [platformConnections, setPlatformConnections] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const fetchScheduledPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await posts.getScheduled();
+      setScheduledPosts(response.data?.posts || []);
+    } catch (error) {
+      console.error('Failed to fetch scheduled posts:', error);
+      toast.error('Failed to load scheduled posts');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    setScheduledPosts(getScheduledPosts());
+    fetchScheduledPosts();
     fetchConnections();
-  }, []);
+  }, [fetchScheduledPosts]);
 
   const fetchConnections = async () => {
     try {
@@ -58,14 +89,18 @@ const Schedule = () => {
   const getPostsForDay = (day) => {
     if (!day) return [];
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return scheduledPosts.filter((p) => p.scheduledDate === dateStr);
+    return scheduledPosts.filter((p) => toLocalDateKey(p.scheduled_at) === dateStr);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Remove this scheduled post?')) return;
-    deleteScheduledPost(id);
-    setScheduledPosts(getScheduledPosts());
-    toast.success('Scheduled post removed');
+    try {
+      await posts.cancelScheduled(id);
+      await fetchScheduledPosts();
+      toast.success('Scheduled post removed');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to remove scheduled post');
+    }
   };
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
@@ -73,11 +108,8 @@ const Schedule = () => {
   const today = new Date();
 
   const upcomingPosts = [...scheduledPosts]
-    .filter((p) => new Date(`${p.scheduledDate}T${p.scheduledTime}`) >= new Date())
-    .sort((a, b) =>
-      new Date(`${a.scheduledDate}T${a.scheduledTime}`) -
-      new Date(`${b.scheduledDate}T${b.scheduledTime}`)
-    );
+    .filter((p) => new Date(p.scheduled_at) >= new Date())
+    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -98,7 +130,6 @@ const Schedule = () => {
           </button>
         </div>
 
-        {/* View toggle */}
         <div className="flex gap-1 bg-white rounded-lg border border-gray-100 p-1 mb-6 w-fit">
           {['calendar', 'queue'].map((v) => (
             <button
@@ -113,9 +144,12 @@ const Schedule = () => {
           ))}
         </div>
 
-        {view === 'calendar' ? (
+        {loading ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-400">
+            Loading scheduled posts...
+          </div>
+        ) : view === 'calendar' ? (
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            {/* Calendar header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-lg text-gray-500">
                 <FiChevronLeft size={20} />
@@ -128,7 +162,6 @@ const Schedule = () => {
               </button>
             </div>
 
-            {/* Day headers */}
             <div className="grid grid-cols-7 border-b border-gray-100">
               {DAYS.map((d) => (
                 <div key={d} className="py-2 text-center text-xs font-medium text-gray-400 uppercase">
@@ -137,10 +170,9 @@ const Schedule = () => {
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7">
               {calendarDays.map((day, i) => {
-                const posts = getPostsForDay(day);
+                const dayPosts = getPostsForDay(day);
                 const isToday =
                   day &&
                   today.getDate() === day &&
@@ -166,17 +198,17 @@ const Schedule = () => {
                           {day}
                         </span>
                         <div className="mt-1 space-y-1">
-                          {posts.slice(0, 2).map((post) => (
+                          {dayPosts.slice(0, 2).map((post) => (
                             <div
                               key={post.id}
                               className="text-[10px] bg-[#168eea]/10 text-[#168eea] rounded px-1.5 py-0.5 truncate cursor-pointer hover:bg-[#168eea]/20"
                               title={post.content}
                             >
-                              {post.scheduledTime} · {post.content?.slice(0, 20)}...
+                              {toLocalTime(post.scheduled_at)} · {post.content?.slice(0, 20)}...
                             </div>
                           ))}
-                          {posts.length > 2 && (
-                            <div className="text-[10px] text-gray-400">+{posts.length - 2} more</div>
+                          {dayPosts.length > 2 && (
+                            <div className="text-[10px] text-gray-400">+{dayPosts.length - 2} more</div>
                           )}
                         </div>
                       </>
@@ -213,14 +245,14 @@ const Schedule = () => {
                 >
                   <div className="flex-shrink-0 text-center">
                     <div className="text-xs text-gray-400 uppercase">
-                      {new Date(post.scheduledDate).toLocaleDateString('en-US', { month: 'short' })}
+                      {new Date(post.scheduled_at).toLocaleDateString('en-US', { month: 'short' })}
                     </div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {new Date(post.scheduledDate).getDate()}
+                      {new Date(post.scheduled_at).getDate()}
                     </div>
                     <div className="text-xs text-gray-500 flex items-center gap-1 justify-center mt-1">
                       <FiClock size={10} />
-                      {post.scheduledTime}
+                      {toLocalTime(post.scheduled_at)}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -256,10 +288,10 @@ const Schedule = () => {
         isOpen={showComposer}
         onClose={() => {
           setShowComposer(false);
-          setScheduledPosts(getScheduledPosts());
+          fetchScheduledPosts();
         }}
         platformConnections={platformConnections}
-        onPublishSuccess={() => setScheduledPosts(getScheduledPosts())}
+        onPublishSuccess={fetchScheduledPosts}
         defaultScheduleMode="later"
       />
     </div>

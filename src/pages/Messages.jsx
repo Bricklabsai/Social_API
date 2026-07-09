@@ -80,9 +80,12 @@ const Messages = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    fetchMessages();
     fetchPlatforms();
   }, []);
+
+  useEffect(() => {
+    fetchMessages(selectedPlatform);
+  }, [selectedPlatform]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -127,10 +130,10 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [messageList.length, selectedConversation, loading, refreshing, selectedPlatform]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (platform = selectedPlatform) => {
     try {
       setLoading(true);
-      const response = await messages.getMessages(selectedPlatform);
+      const response = await messages.getMessages(platform);
       setMessageList(response.data.messages || []);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -151,7 +154,7 @@ useEffect(() => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchMessages();
+    await fetchMessages(selectedPlatform);
     setRefreshing(false);
     toast.success('Messages refreshed');
   };
@@ -159,7 +162,6 @@ useEffect(() => {
   const handlePlatformFilter = (platform) => {
     setSelectedPlatform(platform);
     setSelectedConversation(null);
-    fetchMessages();
   };
 
   const handleDeleteConversation = async (conversationId) => {
@@ -263,7 +265,7 @@ useEffect(() => {
         }
       }, 100);
       
-      await fetchMessages();
+      await fetchMessages(selectedPlatform);
     } else {
       toast.error(response.data.error || 'Failed to send reply');
     }

@@ -54,19 +54,34 @@ const Comments = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [filterType, setFilterType] = useState('all'); // all, pending, replied
+  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
+
+  useEffect(() => {
+    fetchCommentPlatforms();
+  }, []);
 
   useEffect(() => {
     fetchComments();
-  }, []);
+  }, [selectedPlatform, filterType]);
+
+  const fetchCommentPlatforms = async () => {
+    try {
+      const response = await comments.getPlatforms();
+      setConnectedPlatforms(response.data?.platforms || []);
+    } catch (error) {
+      console.error('Failed to fetch comment platforms:', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await comments.getInbox(50);
-      let commentData = response.data;
-      if (commentData && typeof commentData === 'object' && !Array.isArray(commentData)) {
-        commentData = commentData.comments || commentData.data || [];
-      }
+      const response = await comments.getFilteredInbox(
+        filterType,
+        selectedPlatform === 'all' ? null : selectedPlatform,
+        100
+      );
+      const commentData = response.data?.comments || [];
       setCommentList(commentData);
     } catch (error) {
       console.error('Failed to fetch comments:', error);
@@ -162,23 +177,16 @@ const Comments = () => {
     youtube: 'bg-red-100 text-red-700',
   };
 
-  // Apply filters
-  const filteredByPlatform = selectedPlatform === 'all' 
-    ? commentList 
-    : commentList.filter(c => c.platform === selectedPlatform);
-  
-  let filteredComments = filteredByPlatform;
-  
-  if (filterType === 'pending') {
-    filteredComments = filteredByPlatform.filter(c => !c.is_replied && c.can_reply !== false);
-  } else if (filterType === 'replied') {
-    filteredComments = filteredByPlatform.filter(c => c.is_replied);
-  }
+  const filteredComments = commentList;
 
   const platformStats = commentList.reduce((acc, c) => {
     acc[c.platform] = (acc[c.platform] || 0) + 1;
     return acc;
   }, {});
+
+  const platformTabs = connectedPlatforms.length
+    ? connectedPlatforms.map((p) => p.platform)
+    : Object.keys(platformStats);
 
   const pendingCount = commentList.filter(c => !c.is_replied && c.can_reply !== false).length;
   const repliedCount = commentList.filter(c => c.is_replied).length;
@@ -282,7 +290,7 @@ const Comments = () => {
           >
             All ({commentList.length})
           </button>
-          {Object.entries(platformStats).map(([platform, count]) => (
+          {platformTabs.map((platform) => (
             <button
               key={platform}
               onClick={() => setSelectedPlatform(platform)}
@@ -293,7 +301,7 @@ const Comments = () => {
               }`}
             >
               {platformIcons[platform]}
-              {platform.charAt(0).toUpperCase() + platform.slice(1)} ({count})
+              {platform.charAt(0).toUpperCase() + platform.slice(1)} ({platformStats[platform] || 0})
             </button>
           ))}
         </div>

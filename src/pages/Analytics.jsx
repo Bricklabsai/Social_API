@@ -85,16 +85,25 @@ const Analytics = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState([]);
 
   useEffect(() => {
-    fetchAnalytics();
-    fetchConnectedPlatforms();
+    const load = async () => {
+      await fetchConnectedPlatforms();
+    };
+    load();
   }, []);
+
+  useEffect(() => {
+    if (connectedPlatforms.length >= 0) {
+      fetchAnalytics();
+    }
+  }, [connectedPlatforms.length]);
 
   const fetchConnectedPlatforms = async () => {
     try {
-      // FIXED: Use the platforms API service instead of direct fetch
       const response = await platforms.getConnections();
       if (response.data && response.data.platforms) {
-        const platformsList = response.data.platforms.map(p => p.platform);
+        const platformsList = response.data.platforms
+          .filter((p) => p.connected)
+          .map((p) => p.platform);
         setConnectedPlatforms(platformsList);
       }
     } catch (error) {
@@ -105,17 +114,51 @@ const Analytics = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      
-      const postsRes = await posts.getPosts(50);
+
+      const [postsRes, summaryRes] = await Promise.all([
+        posts.getPosts(50),
+        analytics.getSummary(),
+      ]);
       setRecentPosts(postsRes.data.posts || []);
-      
-      // Get summary from backend
-      const summaryRes = await analytics.getSummary();
+
       const summaryData = summaryRes.data || {};
-      
-      // Get platform stats
-      const platformStats = summaryData.platform_stats || {};
-      
+      const platformStats = { ...(summaryData.platform_stats || {}) };
+
+      // Enrich with per-platform analytics for connected accounts
+      const connected = connectedPlatforms.length
+        ? connectedPlatforms
+        : (await platforms.getConnections()).data?.platforms
+            ?.filter((p) => p.connected)
+            .map((p) => p.platform) || [];
+
+      await Promise.all(
+        connected.map(async (platform) => {
+          try {
+            const platformRes = await analytics.getPlatformAnalytics(platform);
+            const data = platformRes.data || {};
+            platformStats[platform] = {
+              reach: data.total_reach || 0,
+              impressions: data.total_impressions || 0,
+              likes: data.total_likes || 0,
+              comments: data.total_comments || 0,
+              shares: data.total_shares || 0,
+              posts: data.total_posts || 0,
+            };
+          } catch (err) {
+            if (!platformStats[platform]) {
+              platformStats[platform] = {
+                reach: 0,
+                impressions: 0,
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                posts: 0,
+              };
+            }
+          }
+        })
+      );
+
       setSummary({
         total_reach: summaryData.total_reach || 0,
         total_impressions: summaryData.total_impressions || 0,
@@ -123,9 +166,8 @@ const Analytics = () => {
         total_comments: summaryData.total_comments || 0,
         total_shares: summaryData.total_shares || 0,
         total_posts: summaryData.total_posts || 0,
-        platform_stats: platformStats
+        platform_stats: platformStats,
       });
-      
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
       toast.error('Failed to load analytics data');
@@ -136,9 +178,16 @@ const Analytics = () => {
 
   const refreshAnalytics = async () => {
     setRefreshing(true);
-    await fetchAnalytics();
-    setRefreshing(false);
-    toast.success('Analytics refreshed');
+    try {
+      await analytics.refresh();
+      await fetchAnalytics();
+      toast.success('Analytics refreshed from all platforms');
+    } catch (error) {
+      console.error('Failed to refresh analytics:', error);
+      toast.error('Failed to refresh analytics');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const viewPostAnalytics = async (postId) => {

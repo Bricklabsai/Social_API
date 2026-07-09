@@ -229,6 +229,14 @@ export const posts = {
   postThread: (tweets) => api.post('/publish/thread', { tweets }),
   publishTwitterPoll: (data) => api.post('/publish/twitter/poll', data),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
+  schedule: (data) => api.post('/publish/schedule', data),
+  scheduleWithMedia: (formData) =>
+    api.post('/publish/schedule/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
+    }),
+  getScheduled: () => api.get('/publish/scheduled'),
+  cancelScheduled: (postId) => api.delete(`/publish/scheduled/${postId}`),
 };
 // ============================================
 // ANALYTICS API
@@ -236,6 +244,7 @@ export const posts = {
 export const analytics = {
   getSummary: () => api.get('/analytics/summary'),
   getPostAnalytics: (postId) => api.get(`/analytics/${postId}`),
+  getPlatformAnalytics: (platform) => api.get(`/analytics/platform/${platform}`),
   refresh: () => api.post('/analytics/refresh'),
   refreshPost: (postId) => api.post(`/analytics/refresh/${postId}`),
 };
@@ -244,7 +253,12 @@ export const analytics = {
 // COMMENTS API
 // ============================================
 export const comments = {
-  getInbox: (limit = 20) => api.get(`/comments/inbox?limit=${limit}`),
+  getInbox: (limit = 50) => api.get(`/comments/inbox?limit=${limit}`),
+  getFilteredInbox: (filterType = 'all', platform = null, limit = 100) => {
+    const params = new URLSearchParams({ filter_type: filterType, limit });
+    if (platform && platform !== 'all') params.append('platform', platform);
+    return api.get(`/comments/inbox/filtered?${params.toString()}`);
+  },
   getPostComments: (postId, platform, limit = 50) => 
     api.get(`/comments/posts/${postId}/${platform}?limit=${limit}`),
   replyToComment: (platform, commentId, replyText) => 
@@ -270,6 +284,8 @@ export const messages = {
       recipient_id: recipientId
     });
   },
+  deleteConversation: (conversationId) =>
+    api.delete(`/messages/conversation/${conversationId}`),
 };
 
 // ============================================
