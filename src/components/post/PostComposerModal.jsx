@@ -25,7 +25,17 @@ import {
   PLATFORM_DISPLAY_NAMES,
   PLATFORM_CHAR_LIMITS,
   getPlatformIcon,
+  COMING_SOON_PLATFORMS,
 } from '../../constants/platforms';
+
+const RECURRENCE_OPTIONS = [
+  { value: 'once', label: 'One time only' },
+  { value: 'weekly:1', label: 'Every Monday', rule: { frequency: 'weekly', day_of_week: 1 } },
+  { value: 'weekly:5', label: 'Every Friday', rule: { frequency: 'weekly', day_of_week: 5 } },
+  { value: 'weekly:0', label: 'Every Sunday', rule: { frequency: 'weekly', day_of_week: 0 } },
+  { value: 'monthly:3', label: '3rd of every month', rule: { frequency: 'monthly_day', day_of_month: 3 } },
+  { value: 'monthly:1', label: '1st of every month', rule: { frequency: 'monthly_day', day_of_month: 1 } },
+];
 
 const PostComposerModal = ({
   isOpen,
@@ -47,6 +57,7 @@ const PostComposerModal = ({
   const [scheduleMode, setScheduleMode] = useState(defaultScheduleMode);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [recurrence, setRecurrence] = useState('once');
   const [showAI, setShowAI] = useState(false);
   const [threadModeEnabled, setThreadModeEnabled] = useState(false);
   const [pollEnabled, setPollEnabled] = useState(false);
@@ -69,7 +80,7 @@ const PostComposerModal = ({
 
 
   const connectedPlatforms = PLATFORM_IDS.filter(
-    (p) => platformConnections[p]?.connected
+    (p) => platformConnections[p]?.connected && !COMING_SOON_PLATFORMS.has(p)
   );
 
   const resetForm = useCallback(() => {
@@ -263,6 +274,12 @@ const PostComposerModal = ({
 
       setPublishing(true);
       try {
+        const recurrenceOption = RECURRENCE_OPTIONS.find((o) => o.value === recurrence);
+        const recurrenceRule =
+          recurrenceOption?.rule
+            ? { ...recurrenceOption.rule, label: recurrenceOption.label }
+            : null;
+
         if (selectedFile) {
           const formData = new FormData();
           formData.append('platforms', JSON.stringify(selectedPlatforms));
@@ -270,15 +287,23 @@ const PostComposerModal = ({
           formData.append('media_type', mediaType);
           formData.append('file', selectedFile);
           formData.append('scheduled_at', scheduledAt);
+          if (recurrenceRule) {
+            formData.append('recurrence_rule', JSON.stringify(recurrenceRule));
+          }
           await posts.scheduleWithMedia(formData);
         } else {
           await posts.schedule({
             platforms: selectedPlatforms,
             content,
             scheduled_at: scheduledAt,
+            recurrence_rule: recurrenceRule,
           });
         }
-        toast.success(`Post scheduled for ${scheduledDate} at ${scheduledTime}`);
+        toast.success(
+          recurrenceRule
+            ? `Scheduled — ${recurrenceOption.label}`
+            : `Post scheduled for ${scheduledDate} at ${scheduledTime}`
+        );
         resetForm();
         onPublishSuccess?.();
         onClose();
@@ -406,6 +431,7 @@ const PostComposerModal = ({
                   const isSelected = selectedPlatforms.includes(platform);
                   const config = PLATFORM_CONFIG[platform];
                   const accountCount = platformConnections?.[platform]?.account_count || 1;
+                  const profile = getPlatformProfile(platform);
                   return (
                     <button
                       key={platform}
@@ -416,7 +442,15 @@ const PostComposerModal = ({
                           : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                       }`}
                     >
-                      {getPlatformIcon(platform, 16)}
+                      {profile.imageUrl ? (
+                        <img
+                          src={profile.imageUrl}
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        getPlatformIcon(platform, 16)
+                      )}
                       {PLATFORM_DISPLAY_NAMES[platform]}
                       {accountCount > 1 && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 text-gray-600">
@@ -737,7 +771,7 @@ const PostComposerModal = ({
             </div>
 
             {scheduleMode === 'later' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   type="date"
                   value={scheduledDate}
@@ -751,6 +785,15 @@ const PostComposerModal = ({
                   onChange={(e) => setScheduledTime(e.target.value)}
                   className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
                 />
+                <select
+                  value={recurrence}
+                  onChange={(e) => setRecurrence(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                >
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
                 <FiClock className="text-gray-400" size={16} />
               </div>
             )}

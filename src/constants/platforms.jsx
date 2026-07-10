@@ -6,26 +6,37 @@ import {
   FaInstagram,
   FaWhatsapp,
   FaTiktok,
+  FaCloud,
 } from 'react-icons/fa';
+import { BsThreads } from 'react-icons/bs';
+import { HiOutlineBuildingOffice2 } from 'react-icons/hi2';
 
 export const PLATFORM_IDS = [
   'facebook',
   'instagram',
   'twitter',
   'linkedin',
+  'linkedin_pages',
   'youtube',
   'tiktok',
   'whatsapp',
+  'threads',
+  'bluesky',
 ];
+
+export const COMING_SOON_PLATFORMS = new Set(['threads', 'bluesky', 'linkedin_pages']);
 
 export const PLATFORM_DISPLAY_NAMES = {
   facebook: 'Facebook',
   instagram: 'Instagram',
   twitter: 'X (Twitter)',
   linkedin: 'LinkedIn',
+  linkedin_pages: 'LinkedIn Pages',
   youtube: 'YouTube',
   tiktok: 'TikTok',
   whatsapp: 'WhatsApp',
+  threads: 'Threads',
+  bluesky: 'Bluesky',
 };
 
 export const PLATFORM_CHAR_LIMITS = {
@@ -33,9 +44,12 @@ export const PLATFORM_CHAR_LIMITS = {
   instagram: 2200,
   twitter: 280,
   linkedin: 3000,
+  linkedin_pages: 3000,
   youtube: 5000,
   tiktok: 2200,
   whatsapp: 4096,
+  threads: 500,
+  bluesky: 300,
 };
 
 export const PLATFORM_CONFIG = {
@@ -115,6 +129,42 @@ export const PLATFORM_CONFIG = {
     supportsImage: true,
     supportsVideo: true,
     requiresMedia: false,
+  },
+  linkedin_pages: {
+    icon: HiOutlineBuildingOffice2,
+    color: 'text-[#0A66C2]',
+    bg: 'bg-[#0A66C2]/10',
+    border: 'border-[#0A66C2]/30',
+    ring: 'ring-[#0A66C2]/40',
+    accent: '#0A66C2',
+    supportsImage: true,
+    supportsVideo: true,
+    requiresMedia: false,
+    comingSoon: true,
+  },
+  threads: {
+    icon: BsThreads,
+    color: 'text-black',
+    bg: 'bg-black/10',
+    border: 'border-black/20',
+    ring: 'ring-black/30',
+    accent: '#000000',
+    supportsImage: true,
+    supportsVideo: true,
+    requiresMedia: false,
+    comingSoon: true,
+  },
+  bluesky: {
+    icon: FaCloud,
+    color: 'text-[#0085ff]',
+    bg: 'bg-[#0085ff]/10',
+    border: 'border-[#0085ff]/30',
+    ring: 'ring-[#0085ff]/40',
+    accent: '#0085ff',
+    supportsImage: true,
+    supportsVideo: false,
+    requiresMedia: false,
+    comingSoon: true,
   },
 };
 
