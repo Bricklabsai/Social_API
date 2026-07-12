@@ -3,9 +3,9 @@ import {
   FaTwitter, FaInstagram, FaFacebook, FaWhatsapp,
   FaUser, FaSpinner, FaInbox, FaPaperPlane, FaCheckDouble, FaTrash, FaArrowLeft
 } from 'react-icons/fa';
-import { FiRefreshCw, FiMessageCircle, FiSearch } from 'react-icons/fi';
+import { FiRefreshCw, FiMessageCircle, FiSearch, FiZap } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { messages } from '../services/api';
+import { messages, assistant } from '../services/api';
 
 const POLL_MS = 10000;
 
@@ -64,6 +64,8 @@ const Messages = () => {
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [loadingAi, setLoadingAi] = useState(false);
   const messagesEndRef = useRef(null);
   const selectedKeyRef = useRef(null);
 
@@ -100,8 +102,15 @@ const Messages = () => {
 
   useEffect(() => {
     setSelectedKey(null);
+    setAiSuggestions([]);
+    setReplyText('');
     fetchMessages();
   }, [fetchMessages]);
+
+  useEffect(() => {
+    setAiSuggestions([]);
+    setReplyText('');
+  }, [selectedKey]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -222,6 +231,34 @@ const Messages = () => {
     }
   };
 
+  const handleSuggestReplies = async () => {
+    if (!selectedConversation) return;
+    const lastIncoming = [...selectedConversation.messages]
+      .reverse()
+      .find((m) => !(m.is_outgoing || m.sender === 'Me' || m.sender_id === 'me'));
+    const lastAny = selectedConversation.messages[selectedConversation.messages.length - 1];
+    const content = lastIncoming?.text || lastAny?.text || '';
+    if (!content.trim()) {
+      toast.error('No message to suggest a reply for');
+      return;
+    }
+
+    setLoadingAi(true);
+    setAiSuggestions([]);
+    try {
+      const response = await assistant.generate({
+        action: 'dm_reply',
+        content,
+        topic: selectedConversation.sender,
+      });
+      setAiSuggestions(response.data?.suggestions || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to generate reply suggestions');
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
   const handleReply = async () => {
     if (!replyText.trim() || !selectedConversation) return;
 
@@ -248,6 +285,7 @@ const Messages = () => {
 
     setMessageList((prev) => [...prev, optimistic]);
     setReplyText('');
+    setAiSuggestions([]);
     setSendingReply(true);
 
     try {
@@ -275,12 +313,19 @@ const Messages = () => {
       } else {
         setMessageList((prev) => prev.filter((m) => m.id !== tempId));
         setReplyText(text);
-        toast.error(response.data?.error || 'Failed to send reply');
+        const err =
+          response.data?.error ||
+          'Failed to send reply';
+        toast.error(err, { duration: response.data?.outside_window ? 7000 : 4000 });
       }
     } catch (error) {
       setMessageList((prev) => prev.filter((m) => m.id !== tempId));
       setReplyText(text);
-      toast.error(error.response?.data?.detail || 'Failed to send reply');
+      const detail = error.response?.data?.detail || error.response?.data?.error;
+      toast.error(
+        typeof detail === 'string' ? detail : 'Failed to send reply',
+        { duration: 6000 }
+      );
     } finally {
       setSendingReply(false);
     }
@@ -524,7 +569,43 @@ const Messages = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-white">
+              <div className="p-4 border-t border-gray-100 bg-white space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSuggestReplies}
+                    disabled={loadingAi}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#168eea]/30 text-[#168eea] hover:bg-[#168eea]/10 disabled:opacity-50"
+                  >
+                    {loadingAi ? <FaSpinner className="animate-spin" size={12} /> : <FiZap size={13} />}
+                    Suggest replies
+                  </button>
+                  {aiSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAiSuggestions([])}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {aiSuggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {aiSuggestions.map((suggestion, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setReplyText(suggestion)}
+                        className="text-left text-xs px-3 py-2 rounded-lg border border-gray-100 bg-[#f8f9fb] hover:border-[#168eea]/40 hover:bg-[#168eea]/5 text-gray-700 max-w-full"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <input
                     type="text"
