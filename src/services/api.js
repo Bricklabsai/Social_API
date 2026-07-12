@@ -216,12 +216,11 @@ export const posts = {
     ),
   getPost: (id) => api.get(`/publish/posts/${id}`),
   deletePost: (id, deleteFromSocial = true) => {
-    return api.delete(`/publish/posts/${id}?delete_from_social=${deleteFromSocial}`);
+    return api.delete(`/posts/${id}?delete_from_social=${deleteFromSocial}`);
   },
   batchDelete: (postIds, deleteFromSocial = true) => {
-    return api.post('/publish/posts/batch-delete', {
-      post_ids: postIds,
-      delete_from_social: deleteFromSocial
+    return api.delete(`/posts/batch?delete_from_social=${deleteFromSocial}`, {
+      data: postIds,
     });
   },
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
@@ -283,7 +282,7 @@ export const messages = {
     const params = new URLSearchParams();
     if (platform && platform !== 'all') params.append('platform', platform);
     params.append('limit', limit);
-    return api.get(`/messages?${params.toString()}`);
+    return api.get(`/messages/?${params.toString()}`);
   },
   getPlatforms: () => api.get('/messages/platforms'),
   getMessageDetail: (platform, messageId) => api.get(`/messages/${platform}/${messageId}`),

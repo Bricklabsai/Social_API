@@ -1,194 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
 import { posts } from '../services/api';
-import { 
+import {
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp, FaTiktok,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaTrash,
-  FaChartLine, FaGlobe, FaFilter, FaTrashAlt
+  FaChartLine, FaGlobe, FaTrashAlt, FaImage, FaVideo, FaFileAlt
 } from 'react-icons/fa';
+import { FiBookOpen } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-// Skeleton Components
 const PostCardSkeleton = () => (
-  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden animate-pulse">
-    <div className="p-4 border-b border-gray-100">
-      <div className="flex items-center justify-between mb-2">
-        <div className="h-6 bg-gray-200 rounded w-24"></div>
-        <div className="flex items-center gap-1">
-          <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-          <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-        </div>
-      </div>
-      <div className="h-4 bg-gray-200 rounded w-32"></div>
-    </div>
-    <div className="p-4 min-h-20">
-      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-    </div>
-    <div className="px-4 pb-4">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <div className="h-5 bg-gray-200 rounded-full w-16"></div>
-          <div className="h-5 bg-gray-200 rounded-full w-16"></div>
-        </div>
-        <div className="h-4 bg-gray-200 rounded w-8"></div>
+  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
+    <div className="aspect-[16/10] bg-gray-100" />
+    <div className="p-4 space-y-3">
+      <div className="h-4 bg-gray-200 rounded w-3/4" />
+      <div className="h-4 bg-gray-200 rounded w-1/2" />
+      <div className="flex gap-2">
+        <div className="h-6 bg-gray-200 rounded-full w-16" />
+        <div className="h-6 bg-gray-200 rounded-full w-16" />
       </div>
     </div>
   </div>
 );
 
 const platformConfig = {
-  facebook: { 
-    icon: <FaFacebook className="text-blue-600" size={16} />, 
-    name: 'Facebook',
-    color: 'text-blue-600',
-    bg: 'bg-blue-50'
-  },
-  instagram: { 
-    icon: <FaInstagram className="text-pink-600" size={16} />, 
-    name: 'Instagram',
-    color: 'text-pink-600',
-    bg: 'bg-pink-50'
-  },
-  linkedin: { 
-    icon: <FaLinkedin className="text-blue-700" size={16} />, 
-    name: 'LinkedIn',
-    color: 'text-blue-700',
-    bg: 'bg-blue-50'
-  },
-  youtube: { 
-    icon: <FaYoutube className="text-red-600" size={16} />, 
-    name: 'YouTube',
-    color: 'text-red-600',
-    bg: 'bg-red-50'
-  },
-  tiktok: {
-    icon: <FaTiktok className="text-black" size={16} />,
-    name: 'TikTok',
-    color: 'text-black',
-    bg: 'bg-gray-50'
-  },
+  facebook: { icon: FaFacebook, name: 'Facebook', color: 'text-blue-600', bg: 'bg-blue-50' },
+  instagram: { icon: FaInstagram, name: 'Instagram', color: 'text-pink-600', bg: 'bg-pink-50' },
+  linkedin: { icon: FaLinkedin, name: 'LinkedIn', color: 'text-blue-700', bg: 'bg-blue-50' },
+  youtube: { icon: FaYoutube, name: 'YouTube', color: 'text-red-600', bg: 'bg-red-50' },
+  twitter: { icon: FaTwitter, name: 'X', color: 'text-sky-500', bg: 'bg-sky-50' },
+  tiktok: { icon: FaTiktok, name: 'TikTok', color: 'text-gray-900', bg: 'bg-gray-100' },
+  whatsapp: { icon: FaWhatsapp, name: 'WhatsApp', color: 'text-green-600', bg: 'bg-green-50' },
+  threads: { icon: FaGlobe, name: 'Threads', color: 'text-gray-800', bg: 'bg-gray-100' },
 };
 
 const detectPlatforms = (post) => {
-  const detected = [];
-  
   if (post.platforms && Array.isArray(post.platforms) && post.platforms.length > 0) {
-    for (const p of post.platforms) {
-      if (p === 'facebook') {
-        const isInstagram = 
-          (post.media_type === 'image') ||
-          (post.analytics && post.analytics.some(a => a.platform === 'instagram')) ||
-          (post.content && /#instagram|@instagram|insta|ig_/i.test(post.content)) ||
-          (post.instagram_business_id) ||
-          (post.platform_user_id && post.platform_user_id.startsWith('178'));
-        
-        if (isInstagram) {
-          detected.push('instagram');
-        } else {
-          detected.push('facebook');
-        }
-      } else {
-        detected.push(p);
-      }
-    }
-    
-    if (detected.length > 0) {
-      return detected;
-    }
-  }
-  
-  if (post.platform) {
-    if (post.platform === 'facebook') {
-      const isInstagram = 
-        post.media_type === 'image' ||
-        (post.analytics && post.analytics.some(a => a.platform === 'instagram')) ||
-        (post.content && /#instagram|@instagram|insta|ig_/i.test(post.content)) ||
-        post.instagram_business_id ||
-        (post.platform_user_id && post.platform_user_id.startsWith('178'));
-      
-      if (isInstagram) {
-        return ['instagram'];
-      }
-    }
-    return [post.platform];
-  }
-  
-  if (post.analytics && post.analytics.length > 0) {
-    const analyticsPlatforms = post.analytics.map(a => a.platform);
-    if (analyticsPlatforms.includes('instagram')) {
-      return ['instagram'];
-    }
-    if (analyticsPlatforms.includes('facebook')) {
-      if (post.media_type === 'image') {
-        return ['instagram'];
-      }
-      return ['facebook'];
-    }
-    return analyticsPlatforms;
-  }
-  
-  if ((post.platform === 'facebook' || post.platforms?.includes('facebook')) && post.media_type === 'image') {
-    return ['instagram'];
-  }
-  
-  if (post.content) {
-    const lowerContent = post.content.toLowerCase();
-    if (lowerContent.includes('#instagram') || 
-        lowerContent.includes('instagram') ||
-        lowerContent.includes('ig_')) {
-      return ['instagram'];
-    }
-  }
-  
-  if (post.platform === 'facebook' || post.platforms?.includes('facebook')) {
-    return ['facebook'];
-  }
-  
-  if (post.platforms && Array.isArray(post.platforms)) {
     return post.platforms;
   }
-  
-  return ['unknown'];
+  if (post.analytics?.length) {
+    return [...new Set(post.analytics.map((a) => a.platform).filter(Boolean))];
+  }
+  if (post.platform) return [post.platform];
+  return [];
 };
 
 const getPlatformDisplay = (platform) => {
-  return platformConfig[platform] || { 
-    icon: <FaGlobe className="text-gray-400" size={16} />, 
-    name: platform || 'Unknown',
-    color: 'text-gray-400',
-    bg: 'bg-gray-50'
-  };
-};
-
-const getPlatformPostLinks = (post) => {
-  if (!post?.analytics || !Array.isArray(post.analytics)) return [];
-  return post.analytics
-    .filter((item) => item?.platform && item?.platform_post_id)
-    .map((item) => {
-      if (item.platform === 'twitter') {
-        return {
-          platform: 'twitter',
-          label: 'View on X',
-          url: `https://x.com/i/web/status/${item.platform_post_id}`,
-        };
-      }
-      if (item.platform === 'linkedin') {
-        return {
-          platform: 'linkedin',
-          label: 'LinkedIn post id',
-          url: null,
-          id: item.platform_post_id,
-        };
-      }
-      return {
-        platform: item.platform,
-        label: `${item.platform} post id`,
-        url: null,
-        id: item.platform_post_id,
-      };
-    });
+  const config = platformConfig[platform];
+  if (!config) {
+    return { icon: FaGlobe, name: platform || 'Unknown', color: 'text-gray-400', bg: 'bg-gray-50' };
+  }
+  return config;
 };
 
 const Posts = () => {
@@ -210,22 +72,16 @@ const Posts = () => {
     try {
       setLoading(true);
       const response = await posts.getPosts(50, true, true);
-      
       let postsData = [];
-      if (response.data && response.data.posts) {
-        postsData = response.data.posts;
-      } else if (Array.isArray(response.data)) {
-        postsData = response.data;
-      } else if (response.data && typeof response.data === 'object') {
-        postsData = [response.data];
-      }
-      
-      const processedPosts = postsData.map(post => ({
-        ...post,
-        detectedPlatforms: detectPlatforms(post)
-      }));
-      
-      setUserPosts(processedPosts);
+      if (response.data?.posts) postsData = response.data.posts;
+      else if (Array.isArray(response.data)) postsData = response.data;
+
+      setUserPosts(
+        postsData.map((post) => ({
+          ...post,
+          detectedPlatforms: detectPlatforms(post),
+        }))
+      );
       setTwitterFeed(response.data?.twitter_feed || []);
       setTiktokFeed(response.data?.tiktok_feed || []);
     } catch (error) {
@@ -236,39 +92,24 @@ const Posts = () => {
     }
   };
 
-  const handleDelete = async (postId, deleteFromSocial = true) => {
-    if (!window.confirm(
-      `Delete this post?\n\nThis will remove it from the database${deleteFromSocial ? ' AND from social media platforms.' : '.'}`
-    )) {
+  const handleDelete = async (postId) => {
+    if (
+      !window.confirm(
+        'Delete this post from SocialHub and all connected social platforms?'
+      )
+    ) {
       return;
     }
 
     setDeleting(postId);
     try {
-      const response = await posts.deletePost(postId, deleteFromSocial);
-      
-      if (response.data.success) {
-        toast.success('Post deleted from database');
-        
-        if (response.data.social_results && deleteFromSocial) {
-          const socialResults = response.data.social_results;
-          const successes = Object.values(socialResults).filter(r => r.success === true).length;
-          const failures = Object.values(socialResults).filter(r => r.success === false).length;
-          
-          if (failures > 0 && successes > 0) {
-            const failedPlatforms = Object.entries(socialResults)
-              .filter(([_, r]) => r.success === false)
-              .map(([platform]) => platform);
-            toast.warning(`Deleted from ${successes} platform(s), but failed on: ${failedPlatforms.join(', ')}`);
-          } else if (failures > 0 && successes === 0) {
-            toast.warning('Post deleted from database, but could not delete from social media');
-          }
-        }
-        
-        setUserPosts(prev => prev.filter(p => p.id !== postId));
-        setSelectedPosts(prev => prev.filter(id => id !== postId));
+      const response = await posts.deletePost(postId, true);
+      if (response.data?.success || response.status === 200) {
+        setUserPosts((prev) => prev.filter((p) => p.id !== postId));
+        setSelectedPosts((prev) => prev.filter((id) => id !== postId));
+        toast.success('Post deleted');
       } else {
-        toast.error(response.data.message || 'Failed to delete post');
+        toast.error(response.data?.message || 'Failed to delete post');
       }
     } catch (error) {
       console.error('Delete error:', error);
@@ -278,35 +119,35 @@ const Posts = () => {
     }
   };
 
-  // FIXED: Batch delete - handle it individually since batch endpoint might not exist
   const handleBatchDelete = async () => {
     if (selectedPosts.length === 0) {
       toast.error('Please select at least one post');
       return;
     }
-
-    if (!window.confirm(
-      `Delete ${selectedPosts.length} selected posts?\n\nThis will remove them from the database AND from social media platforms.`
-    )) {
+    if (
+      !window.confirm(
+        `Delete ${selectedPosts.length} posts from SocialHub and social platforms?`
+      )
+    ) {
       return;
     }
 
     let deleted = 0;
     let failed = 0;
-
     for (const postId of selectedPosts) {
       try {
         await posts.deletePost(postId, true);
         deleted++;
-      } catch (error) {
-        console.error(`Failed to delete post ${postId}:`, error);
+      } catch {
         failed++;
       }
     }
 
     if (deleted > 0) {
-      toast.success(`${deleted} posts deleted successfully${failed > 0 ? `, ${failed} failed` : ''}`);
-      setUserPosts(prev => prev.filter(p => !selectedPosts.includes(p.id)));
+      toast.success(
+        `${deleted} post${deleted === 1 ? '' : 's'} deleted${failed ? `, ${failed} failed` : ''}`
+      );
+      setUserPosts((prev) => prev.filter((p) => !selectedPosts.includes(p.id)));
       setSelectedPosts([]);
       setDeleteMode(false);
     } else {
@@ -315,348 +156,314 @@ const Posts = () => {
   };
 
   const togglePostSelection = (postId) => {
-    setSelectedPosts(prev =>
-      prev.includes(postId)
-        ? prev.filter(id => id !== postId)
-        : [...prev, postId]
+    setSelectedPosts((prev) =>
+      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
     );
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      completed: { icon: <FaCheckCircle />, text: 'Success', color: 'text-green-600 bg-green-50' },
-      partial: { icon: <FaExclamationTriangle />, text: 'Partial', color: 'text-amber-600 bg-amber-50' },
-      failed: { icon: <FaExclamationTriangle />, text: 'Failed', color: 'text-red-600 bg-red-50' },
-      processing: { icon: <FaSpinner className="animate-spin" />, text: 'Processing', color: 'text-[#168eea] bg-[#168eea]/10' },
+      completed: { icon: FaCheckCircle, text: 'Published', color: 'text-green-700 bg-green-50' },
+      partial: { icon: FaExclamationTriangle, text: 'Partial', color: 'text-amber-700 bg-amber-50' },
+      failed: { icon: FaExclamationTriangle, text: 'Failed', color: 'text-red-700 bg-red-50' },
+      processing: { icon: FaSpinner, text: 'Processing', color: 'text-[#168eea] bg-[#168eea]/10' },
+      scheduled: { icon: FaCalendar, text: 'Scheduled', color: 'text-purple-700 bg-purple-50' },
     };
     const config = statusConfig[status] || statusConfig.processing;
+    const Icon = config.icon;
     return (
-      <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${config.color}`}>
-        {config.icon}
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${config.color}`}>
+        <Icon className={status === 'processing' ? 'animate-spin' : ''} size={11} />
         {config.text}
       </span>
     );
   };
 
-  const truncateText = (text, maxLength = 120) => {
+  const truncateText = (text, maxLength = 140) => {
     if (!text) return '';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    return text.length <= maxLength ? text : `${text.substring(0, maxLength)}...`;
   };
 
-  const filteredPosts = filter === 'all' 
-    ? userPosts 
-    : userPosts.filter(post => post.detectedPlatforms?.includes(filter));
+  const filteredPosts =
+    filter === 'all'
+      ? userPosts
+      : userPosts.filter((post) => post.detectedPlatforms?.includes(filter));
 
-  const allPlatforms = [...new Set(userPosts.flatMap(p => p.detectedPlatforms || []))];
+  const allPlatforms = [...new Set(userPosts.flatMap((p) => p.detectedPlatforms || []))];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f9fb]">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
-            <div className="h-10 bg-gray-200 rounded w-40 animate-pulse"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => <PostCardSkeleton key={i} />)}
-          </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="h-8 bg-gray-200 rounded w-32 animate-pulse mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <PostCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Posts</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              View and manage your published content · {userPosts.length} total
-            </p>
-          </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setDeleteMode(!deleteMode);
-                  setSelectedPosts([]);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  deleteMode
-                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {deleteMode ? 'Cancel Selection' : 'Select Posts'}
-              </button>
-              
-              {deleteMode && selectedPosts.length > 0 && (
-                <button
-                  onClick={handleBatchDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  <FaTrashAlt size={14} />
-                  Delete Selected ({selectedPosts.length})
-                </button>
-              )}
-            </div>
+    <div className="max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <FiBookOpen className="text-[#168eea]" size={24} />
+            Posts
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            Published content across your channels · {userPosts.length} total
+          </p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setDeleteMode(!deleteMode);
+              setSelectedPosts([]);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              deleteMode
+                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {deleteMode ? 'Cancel' : 'Select'}
+          </button>
+          {deleteMode && selectedPosts.length > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+            >
+              <FaTrashAlt size={13} />
+              Delete ({selectedPosts.length})
+            </button>
+          )}
+        </div>
+      </div>
 
-        {/* Platform Filter */}
-        {userPosts.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <FaFilter className="text-[#168eea]" size={14} />
-              <span className="text-sm font-medium text-gray-600">Filter by platform:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
+      {userPosts.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filter === 'all'
+                ? 'bg-[#168eea] text-white'
+                : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
+            }`}
+          >
+            All ({userPosts.length})
+          </button>
+          {allPlatforms.map((platform) => {
+            const config = getPlatformDisplay(platform);
+            const Icon = config.icon;
+            const count = userPosts.filter((p) => p.detectedPlatforms?.includes(platform)).length;
+            return (
               <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  filter === 'all' 
-                    ? 'bg-[#168eea] text-white shadow-sm' 
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
+                key={platform}
+                onClick={() => setFilter(platform)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  filter === platform
+                    ? 'bg-[#168eea] text-white'
+                    : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
                 }`}
               >
-                All Posts ({userPosts.length})
+                <Icon size={14} />
+                {config.name} ({count})
               </button>
-              {allPlatforms.map(platform => {
-                const config = getPlatformDisplay(platform);
-                const count = userPosts.filter(p => p.detectedPlatforms?.includes(platform)).length;
-                return (
-                  <button
-                    key={platform}
-                    onClick={() => setFilter(platform)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      filter === platform 
-                        ? 'bg-[#168eea] text-white shadow-sm' 
-                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100'
-                    }`}
-                  >
-                    {config.icon}
-                    {config.name} ({count})
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        {/* Posts Grid */}
-        {twitterFeed.length > 0 && (
-          <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent tweets from X</h2>
-            <div className="space-y-2 max-h-64 overflow-auto">
-              {twitterFeed.map((tweet) => (
-                <a
-                  key={tweet.id}
-                  href={tweet.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block p-3 rounded-lg border border-gray-100 hover:border-[#168eea]/30 hover:bg-[#168eea]/5 transition-colors"
-                >
-                  <p className="text-sm text-gray-700 line-clamp-3">{tweet.text}</p>
-                  <div className="mt-2 text-xs text-gray-400 flex gap-3">
-                    <span>❤ {tweet.likes}</span>
-                    <span>↺ {tweet.retweets}</span>
-                    <span>💬 {tweet.replies}</span>
-                  </div>
-                </a>
-              ))}
-            </div>
+      {twitterFeed.length > 0 && (
+        <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <FaTwitter className="text-sky-500" /> Recent from X
+          </h2>
+          <div className="space-y-2 max-h-56 overflow-auto">
+            {twitterFeed.map((tweet) => (
+              <a
+                key={tweet.id}
+                href={tweet.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block p-3 rounded-lg border border-gray-100 hover:border-[#168eea]/30 hover:bg-[#168eea]/5 transition-colors"
+              >
+                <p className="text-sm text-gray-700 line-clamp-3">{tweet.text}</p>
+                <div className="mt-2 text-xs text-gray-400 flex gap-3">
+                  <span className="inline-flex items-center gap-1">
+                    <FaChartLine size={10} /> {tweet.likes}
+                  </span>
+                </div>
+              </a>
+            ))}
           </div>
-        )}
-        {tiktokFeed.length > 0 && (
-          <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent videos from TikTok</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tiktokFeed.map((video) => (
-                <a
-                  key={video.id}
-                  href={video.share_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-lg border border-gray-100 hover:border-black/20 hover:bg-gray-50 transition-colors overflow-hidden"
-                >
-                  {video.cover_image_url && (
-                    <img
-                      src={video.cover_image_url}
-                      alt={video.title || 'TikTok video'}
-                      className="w-full h-36 object-cover"
-                    />
-                  )}
-                  <div className="p-3">
-                    <p className="text-sm text-gray-700 line-clamp-2">
-                      {video.title || video.description || 'TikTok video'}
-                    </p>
-                    <div className="mt-2 text-xs text-gray-400 flex gap-3">
-                      <span>▶ {video.view_count ?? 0}</span>
-                      <span>❤ {video.like_count ?? 0}</span>
-                      <span>💬 {video.comment_count ?? 0}</span>
+        </div>
+      )}
+
+      {tiktokFeed.length > 0 && (
+        <div className="mb-6 bg-white rounded-xl border border-gray-100 p-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <FaTiktok /> Recent from TikTok
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {tiktokFeed.map((video) => (
+              <a
+                key={video.id}
+                href={video.share_url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border border-gray-100 overflow-hidden hover:border-gray-300 transition-colors"
+              >
+                {video.cover_image_url && (
+                  <img
+                    src={video.cover_image_url}
+                    alt={video.title || 'TikTok video'}
+                    className="w-full h-36 object-cover"
+                  />
+                )}
+                <div className="p-3">
+                  <p className="text-sm text-gray-700 line-clamp-2">
+                    {video.title || video.description || 'TikTok video'}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filteredPosts.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-100 p-16 text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#168eea]/10 flex items-center justify-center">
+            <FiBookOpen className="text-[#168eea]" size={24} />
+          </div>
+          <p className="text-gray-700 font-medium mb-1">No posts yet</p>
+          <p className="text-sm text-gray-400">
+            {userPosts.length === 0
+              ? 'Publish from the dashboard to see your content here.'
+              : `No posts for this filter.`}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredPosts.map((post) => {
+            const platforms = post.detectedPlatforms || [];
+            const isSelected = selectedPosts.includes(post.id);
+            const isDeleting = deleting === post.id;
+            const mediaUrl = post.media_url;
+            const mediaType = post.media_type;
+            const content = post.content || post.content_text || '';
+
+            return (
+              <article
+                key={post.id}
+                className={`group bg-white rounded-xl border overflow-hidden transition-all hover:shadow-md ${
+                  isSelected ? 'border-[#168eea] ring-1 ring-[#168eea]/30' : 'border-gray-100'
+                }`}
+              >
+                <div className="relative aspect-[16/10] bg-[#f0f2f5] overflow-hidden">
+                  {mediaUrl && mediaType === 'image' ? (
+                    <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+                  ) : mediaUrl && mediaType === 'video' ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-900/5">
+                      <FaVideo className="text-gray-400" size={28} />
                     </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center p-6">
+                      <p className="text-sm text-gray-500 line-clamp-4 text-center leading-relaxed">
+                        {content || 'Text post'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="absolute top-3 left-3 flex items-center gap-2">
+                    {getStatusBadge(post.status)}
                   </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-        {filteredPosts.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
-            <div className="text-6xl mb-4">📝</div>
-            <p className="text-gray-400">
-              {userPosts.length === 0 
-                ? 'No posts yet. Create your first post from the Dashboard!' 
-                : `No posts for ${filter}. Try selecting a different filter.`}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPosts.map((post) => {
-              const platforms = post.detectedPlatforms || ['unknown'];
-              const postLinks = getPlatformPostLinks(post);
-              const isSelected = selectedPosts.includes(post.id);
-              const isDeleting = deleting === post.id;
-              
-              return (
-                <div
-                  key={post.id}
-                  className={`bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 ${
-                    isSelected
-                      ? 'border-[#168eea] bg-[#168eea]/5'
-                      : 'border-gray-100 hover:border-gray-200'
-                  }`}
-                >
-                  {/* Selection Checkbox (when in delete mode) */}
+
                   {deleteMode && (
-                    <div className="p-3 pb-0">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => togglePostSelection(post.id)}
-                          className="w-4 h-4 text-[#168eea] rounded border-gray-300 focus:ring-[#168eea]"
-                        />
-                        <span className="text-sm text-gray-600">Select for deletion</span>
-                      </label>
-                    </div>
+                    <label className="absolute top-3 right-3 bg-white/95 rounded-md px-2 py-1 shadow-sm cursor-pointer flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => togglePostSelection(post.id)}
+                        className="w-3.5 h-3.5 text-[#168eea] rounded border-gray-300"
+                      />
+                      <span className="text-[11px] text-gray-600">Select</span>
+                    </label>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                    <span className="inline-flex items-center gap-1.5">
+                      <FaCalendar size={11} />
+                      {new Date(post.created_at || Date.now()).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    {mediaType && (
+                      <span className="inline-flex items-center gap-1 capitalize">
+                        {mediaType === 'image' ? <FaImage size={11} /> : mediaType === 'video' ? <FaVideo size={11} /> : <FaFileAlt size={11} />}
+                        {mediaType}
+                      </span>
+                    )}
+                  </div>
+
+                  {content && (
+                    <p className="text-sm text-gray-800 leading-relaxed mb-3 line-clamp-3">
+                      {truncateText(content)}
+                    </p>
                   )}
 
-                  {/* Card Content */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(post.status)}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/posts/${post.id}`);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-[#168eea] transition-colors rounded-lg hover:bg-[#168eea]/10"
-                          title="View details"
-                        >
-                          <FaEye size={14} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(post.id, true);
-                          }}
-                          disabled={isDeleting}
-                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-50"
-                          title="Delete from database and social media"
-                        >
-                          {isDeleting ? (
-                            <FaSpinner className="animate-spin" size={14} />
-                          ) : (
-                            <FaTrash size={14} />
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(post.id, false);
-                          }}
-                          disabled={isDeleting}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100 disabled:opacity-50"
-                          title="Delete from database only"
-                        >
-                          <FaTrashAlt size={12} />
-                        </button>
-                      </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-1.5 min-w-0">
+                      {platforms.map((platform) => {
+                        const config = getPlatformDisplay(platform);
+                        const Icon = config.icon;
+                        return (
+                          <span
+                            key={platform}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${config.bg} ${config.color}`}
+                          >
+                            <Icon size={11} />
+                            {config.name}
+                          </span>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-400 text-xs">
-                      <FaCalendar size={12} />
-                      {new Date(post.created_at || post.createdAt || Date.now()).toLocaleDateString()}
-                    </div>
-                  </div>
 
-                  {/* Card Content */}
-                  <div className="px-4 pb-2 min-h-20">
-                    <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
-                      {truncateText(post.content || post.content_text || '', 100)}
-                    </p>
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="px-4 pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap gap-1.5">
-                        {platforms.map((platform) => {
-                          const config = getPlatformDisplay(platform);
-                          return (
-                            <span key={platform} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${config.bg}`}>
-                              {config.icon}
-                              <span className={`capitalize ${config.color}`}>{config.name}</span>
-                            </span>
-                          );
-                        })}
-                      </div>
-                      {post.analytics && post.analytics.length > 0 && (
-                        <div className="flex items-center gap-1 text-gray-400 text-xs">
-                          <FaChartLine size={12} />
-                          <span>{post.analytics.length}</span>
-                        </div>
-                      )}
-                    </div>
-                    {post.media_type && (
-                      <div className="text-xs text-gray-400 mt-2">
-                        📎 {post.media_type}
-                      </div>
-                    )}
-                    {postLinks.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {postLinks.map((link, idx) =>
-                          link.url ? (
-                            <a
-                              key={`${link.platform}-${idx}`}
-                              href={link.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs text-[#168eea] hover:underline"
-                            >
-                              {link.label}
-                            </a>
-                          ) : (
-                            <span
-                              key={`${link.platform}-${idx}`}
-                              className="text-xs text-gray-400"
-                            >
-                              {link.label}: {link.id}
-                            </span>
-                          )
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <button
+                        onClick={() => navigate(`/posts/${post.id}`)}
+                        className="p-2 text-gray-400 hover:text-[#168eea] hover:bg-[#168eea]/10 rounded-lg transition-colors"
+                        title="View details"
+                      >
+                        <FaEye size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        disabled={isDeleting}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Delete from SocialHub and social platforms"
+                      >
+                        {isDeleting ? (
+                          <FaSpinner className="animate-spin" size={14} />
+                        ) : (
+                          <FaTrash size={14} />
                         )}
-                      </div>
-                    )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
