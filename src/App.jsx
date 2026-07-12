@@ -14,6 +14,7 @@ import PostDetail from './pages/PostDetail';
 import Comments from './pages/Comments';
 import Settings from './pages/Settings';
 import Messages from './pages/Messages';
+import Create from './pages/Create';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AdminBilling from './pages/AdminBilling';
@@ -46,6 +47,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Schedule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <Create />
               </ProtectedRoute>
             }
           />

@@ -11,10 +11,12 @@ import {
   FiZap,
   FiSmile,
   FiBarChart2,
+  FiFileText,
+  FiBookmark,
 } from 'react-icons/fi';
 import { FaSpinner, FaInfoCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { posts } from '../../services/api';
+import { posts, templates } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PlatformPreview from './PlatformPreview';
 import AIAssistant from './AIAssistant';
@@ -59,6 +61,11 @@ const PostComposerModal = ({
   const [scheduledTime, setScheduledTime] = useState('');
   const [recurrence, setRecurrence] = useState('once');
   const [showAI, setShowAI] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateList, setTemplateList] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateTitle, setTemplateTitle] = useState('');
   const [threadModeEnabled, setThreadModeEnabled] = useState(false);
   const [pollEnabled, setPollEnabled] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
@@ -127,6 +134,8 @@ const PostComposerModal = ({
 
   const resetForm = useCallback(() => {
     setContent('');
+    setShowTemplates(false);
+    setTemplateTitle('');
     setSelectedTargets([]);
     setSelectedFile(null);
     if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
@@ -142,6 +151,56 @@ const PostComposerModal = ({
     setPollDurationMinutes(1440);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [mediaPreviewUrl]);
+
+  const loadTemplates = useCallback(async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await templates.list();
+      setTemplateList(response.data?.templates || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, []);
+
+  const handleSaveTemplate = async () => {
+    if (!content.trim()) {
+      toast.error('Write some content before saving a template');
+      return;
+    }
+    const title = templateTitle.trim() || content.trim().slice(0, 40);
+    setSavingTemplate(true);
+    try {
+      const response = await templates.create({ title, content: content.trim() });
+      setTemplateList((prev) => [response.data.template, ...prev]);
+      setTemplateTitle('');
+      toast.success('Template saved');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id) => {
+    try {
+      await templates.delete(id);
+      setTemplateList((prev) => prev.filter((t) => t.id !== id));
+      toast.success('Template deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete template');
+    }
+  };
+
+  const openTemplates = async () => {
+    const next = !showTemplates;
+    setShowTemplates(next);
+    if (next) {
+      setShowAI(false);
+      await loadTemplates();
+    }
+  };
 
   useEffect(() => {
     if (isOpen && connectedTargets.length > 0 && selectedTargets.length === 0) {
@@ -454,7 +513,10 @@ const PostComposerModal = ({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAI(!showAI)}
+              onClick={() => {
+                setShowAI(!showAI);
+                if (!showAI) setShowTemplates(false);
+              }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 showAI
                   ? 'bg-[#168eea]/10 text-[#168eea]'
@@ -463,6 +525,17 @@ const PostComposerModal = ({
             >
               <FiZap size={16} />
               AI Assistant
+            </button>
+            <button
+              onClick={openTemplates}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                showTemplates
+                  ? 'bg-[#168eea]/10 text-[#168eea]'
+                  : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              <FiFileText size={16} />
+              Templates
             </button>
             <button
               onClick={handleClose}
@@ -689,6 +762,13 @@ const PostComposerModal = ({
               >
                 <FiBarChart2 size={20} />
               </button>
+              <button
+                onClick={openTemplates}
+                className="p-2 text-gray-500 hover:text-[#168eea] hover:bg-[#168eea]/10 rounded-lg transition-colors"
+                title="Templates"
+              >
+                <FiBookmark size={20} />
+              </button>
             </div>
 
             {/* Mobile preview */}
@@ -795,6 +875,80 @@ const PostComposerModal = ({
               onApply={(text) => setContent(text)}
               onClose={() => setShowAI(false)}
             />
+          )}
+
+          {showTemplates && (
+            <div className="absolute inset-y-0 right-0 w-80 bg-white border-l border-gray-100 shadow-xl flex flex-col z-10">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <FiFileText className="text-[#168eea]" size={16} />
+                  <p className="text-sm font-semibold text-gray-900">Templates</p>
+                </div>
+                <button
+                  onClick={() => setShowTemplates(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+              <div className="p-4 border-b border-gray-100 space-y-2">
+                <p className="text-xs text-gray-500">Save the current caption for reuse later.</p>
+                <input
+                  type="text"
+                  value={templateTitle}
+                  onChange={(e) => setTemplateTitle(e.target.value)}
+                  placeholder="Template name (optional)"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                />
+                <button
+                  onClick={handleSaveTemplate}
+                  disabled={savingTemplate || !content.trim()}
+                  className="w-full px-3 py-2 text-sm bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg font-medium disabled:opacity-50"
+                >
+                  {savingTemplate ? 'Saving...' : 'Save as template'}
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {loadingTemplates && (
+                  <div className="flex items-center justify-center py-8 text-gray-400 gap-2">
+                    <FaSpinner className="animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                )}
+                {!loadingTemplates && templateList.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-8">No saved templates yet</p>
+                )}
+                {templateList.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="border border-gray-100 rounded-lg p-3 bg-[#f8f9fb] hover:border-[#168eea]/30 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-gray-900 mb-1">{tpl.title}</p>
+                    <p className="text-xs text-gray-500 line-clamp-3 mb-2 whitespace-pre-wrap">
+                      {tpl.content}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setContent(tpl.content);
+                          setShowTemplates(false);
+                          toast.success('Template applied');
+                        }}
+                        className="text-xs text-[#168eea] font-medium hover:underline"
+                      >
+                        Use
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTemplate(tpl.id)}
+                        className="text-xs text-gray-400 hover:text-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

@@ -325,6 +325,28 @@ export const assistant = {
 };
 
 // ============================================
+// TEMPLATES API
+// ============================================
+export const templates = {
+  list: () => api.get('/templates/'),
+  create: (data) => api.post('/templates/', data),
+  update: (id, data) => api.put(`/templates/${id}`, data),
+  delete: (id) => api.delete(`/templates/${id}`),
+};
+
+// ============================================
+// CONTENT IDEAS (Create board)
+// ============================================
+export const contentIdeas = {
+  list: (status) =>
+    api.get('/content-ideas/', { params: status ? { status } : {} }),
+  create: (data) => api.post('/content-ideas/', data),
+  createBulk: (data) => api.post('/content-ideas/bulk', data),
+  update: (id, data) => api.patch(`/content-ideas/${id}`, data),
+  delete: (id) => api.delete(`/content-ideas/${id}`),
+};
+
+// ============================================
 // TEAM API
 // ============================================
 export const team = {

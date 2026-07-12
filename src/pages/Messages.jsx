@@ -93,42 +93,40 @@ const Messages = () => {
     }
   }, [selectedConversation]);
 
-  // Add this after your existing useEffects
+  // Poll for new messages every 10 seconds without full-page reload
 useEffect(() => {
-  // Poll for new messages every 10 seconds
   const interval = setInterval(async () => {
-    if (!loading && !refreshing) {
-      try {
-        const response = await messages.getMessages(selectedPlatform);
-        const newMessages = response.data.messages || [];
-        
-        if (newMessages.length > messageList.length) {
-          setMessageList(newMessages);
-          
-          // Update conversation if we're in one
-          if (selectedConversation) {
-            const updated = newMessages.filter(m => 
-              m.conversation_id === selectedConversation.id || 
-              m.sender_id === selectedConversation.sender_id
-            );
-            if (updated.length > selectedConversation.messages.length) {
-              updated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-              setSelectedConversation({
-                ...selectedConversation,
+    if (loading || refreshing) return;
+    try {
+      const response = await messages.getMessages(selectedPlatform);
+      const newMessages = response.data.messages || [];
+      setMessageList(newMessages);
+
+      if (selectedConversation) {
+        const updated = newMessages.filter(
+          (m) =>
+            m.conversation_id === selectedConversation.id ||
+            m.sender_id === selectedConversation.sender_id ||
+            m.recipient_id === selectedConversation.sender_id
+        );
+        updated.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setSelectedConversation((prev) =>
+          prev
+            ? {
+                ...prev,
                 messages: updated,
-                last_message: updated[updated.length - 1]
-              });
-            }
-          }
-        }
-      } catch (e) {
-        // Silent fail
+                last_message: updated[updated.length - 1] || prev.last_message,
+              }
+            : prev
+        );
       }
+    } catch {
+      // Silent fail for background polling
     }
-  }, 10000); // 10 seconds
-  
+  }, 10000);
+
   return () => clearInterval(interval);
-}, [messageList.length, selectedConversation, loading, refreshing, selectedPlatform]);
+}, [selectedConversation?.id, loading, refreshing, selectedPlatform]);
 
   const fetchMessages = async (platform = selectedPlatform) => {
     try {
