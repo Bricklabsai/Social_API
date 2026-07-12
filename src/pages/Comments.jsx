@@ -61,6 +61,7 @@ const Comments = () => {
       const response = await comments.getFilteredInbox('all', null, 100);
       setCommentList(response.data?.comments || []);
       initialLoadDone.current = true;
+      window.dispatchEvent(new CustomEvent('badges:refresh'));
     } catch (error) {
       console.error('Failed to fetch comments:', error);
       if (!silent) toast.error('Failed to load comments');
@@ -149,6 +150,7 @@ const Comments = () => {
               : c
           )
         );
+        window.dispatchEvent(new CustomEvent('badges:refresh'));
       } else {
         toast.error(response.data.detail || 'Failed to send reply');
       }

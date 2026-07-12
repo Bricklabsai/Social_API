@@ -208,6 +208,31 @@ const Messages = () => {
     }
   }, [selectedConversation?.messages?.length, selectedKey]);
 
+  useEffect(() => {
+    if (!selectedConversation || selectedConversation.unread_count <= 0) return;
+
+    const peerKey = selectedConversation.id;
+    setMessageList((prev) =>
+      prev.map((msg) => {
+        if (getPeerKey(msg) !== peerKey) return msg;
+        if (msg.is_outgoing) return msg;
+        return { ...msg, is_read: true };
+      })
+    );
+
+    messages
+      .markRead({
+        peerKey,
+        conversationId: selectedConversation.last_message?.conversation_id || peerKey,
+        platform: selectedConversation.platform,
+        peerId: selectedConversation.sender_id,
+      })
+      .then(() => {
+        window.dispatchEvent(new CustomEvent('badges:refresh'));
+      })
+      .catch(() => {});
+  }, [selectedKey]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchMessages({ silent: true });

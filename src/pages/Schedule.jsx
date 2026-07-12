@@ -36,9 +36,28 @@ const toLocalTime = (isoString) => {
   });
 };
 
+const QUEUE_POLL_MS = 20000;
+
+const STATUS_STYLES = {
+  scheduled: 'bg-[#168eea]/10 text-[#168eea]',
+  processing: 'bg-amber-50 text-amber-700',
+  completed: 'bg-emerald-50 text-emerald-700',
+  partial: 'bg-amber-50 text-amber-700',
+  failed: 'bg-red-50 text-red-600',
+};
+
+const statusLabel = (status) => {
+  if (status === 'completed') return 'Posted';
+  if (status === 'partial') return 'Posted (partial)';
+  if (status === 'processing') return 'Posting…';
+  if (status === 'failed') return 'Failed';
+  return 'Upcoming';
+};
+
 const Schedule = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [scheduledPosts, setScheduledPosts] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
   const [view, setView] = useState('calendar');
   const [showComposer, setShowComposer] = useState(false);
   const [platformConnections, setPlatformConnections] = useState({});
@@ -53,16 +72,19 @@ const Schedule = () => {
   });
   const [savingRecurring, setSavingRecurring] = useState(false);
 
-  const fetchScheduledPosts = useCallback(async () => {
+  const fetchScheduledPosts = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await posts.getScheduled();
-      setScheduledPosts(response.data?.posts || []);
+      const upcoming = response.data?.upcoming || response.data?.posts || [];
+      const recent = response.data?.recent || [];
+      setScheduledPosts(upcoming);
+      setRecentPosts(recent);
     } catch (error) {
       console.error('Failed to fetch scheduled posts:', error);
-      toast.error('Failed to load scheduled posts');
+      if (!silent) toast.error('Failed to load scheduled posts');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -81,6 +103,12 @@ const Schedule = () => {
     fetchRecurringSchedules();
   }, [fetchScheduledPosts, fetchRecurringSchedules]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchScheduledPosts({ silent: true });
+    }, QUEUE_POLL_MS);
+    return () => clearInterval(interval);
+  }, [fetchScheduledPosts]);
   const fetchConnections = async () => {
     try {
       const response = await platforms.getConnections();
@@ -108,7 +136,8 @@ const Schedule = () => {
   const getPostsForDay = (day) => {
     if (!day) return [];
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return scheduledPosts.filter((p) => toLocalDateKey(p.scheduled_at) === dateStr);
+    const all = [...scheduledPosts, ...recentPosts];
+    return all.filter((p) => toLocalDateKey(p.scheduled_at) === dateStr);
   };
 
   const handleDelete = async (id) => {
@@ -183,9 +212,66 @@ const Schedule = () => {
     }
   };
 
-  const upcomingPosts = [...scheduledPosts]
-    .filter((p) => new Date(p.scheduled_at) >= new Date())
-    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+  const upcomingPosts = [...scheduledPosts].sort(
+    (a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at)
+  );
+
+  const postedQueue = [...recentPosts].sort(
+    (a, b) => new Date(b.scheduled_at) - new Date(a.scheduled_at)
+  );
+
+  const renderQueueCard = (post, { showDelete = false } = {}) => (
+    <div
+      key={post.id}
+      className="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4"
+    >
+      <div className="flex-shrink-0 text-center">
+        <div className="text-xs text-gray-400 uppercase">
+          {new Date(post.scheduled_at).toLocaleDateString('en-US', { month: 'short' })}
+        </div>
+        <div className="text-2xl font-bold text-gray-900">
+          {new Date(post.scheduled_at).getDate()}
+        </div>
+        <div className="text-xs text-gray-500 flex items-center gap-1 justify-center mt-1">
+          <FiClock size={10} />
+          {toLocalTime(post.scheduled_at)}
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span
+            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+              STATUS_STYLES[post.status] || STATUS_STYLES.scheduled
+            }`}
+          >
+            {statusLabel(post.status)}
+          </span>
+        </div>
+        <p className="text-sm text-gray-800 line-clamp-2">{post.content}</p>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {(post.platforms || []).map((p) => (
+            <span
+              key={p}
+              className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-0.5 rounded-full text-gray-600"
+            >
+              {getPlatformIcon(p, 12)}
+              {PLATFORM_DISPLAY_NAMES[p]}
+            </span>
+          ))}
+        </div>
+      </div>
+      {showDelete && (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => handleDelete(post.id)}
+            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+          >
+            <FiTrash2 size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -277,10 +363,18 @@ const Schedule = () => {
                           {dayPosts.slice(0, 2).map((post) => (
                             <div
                               key={post.id}
-                              className="text-[10px] bg-[#168eea]/10 text-[#168eea] rounded px-1.5 py-0.5 truncate cursor-pointer hover:bg-[#168eea]/20"
+                              className={`text-[10px] rounded px-1.5 py-0.5 truncate cursor-pointer ${
+                                post.status && post.status !== 'scheduled'
+                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'bg-[#168eea]/10 text-[#168eea] hover:bg-[#168eea]/20'
+                              }`}
                               title={post.content}
                             >
-                              {toLocalTime(post.scheduled_at)} · {post.content?.slice(0, 20)}...
+                              {toLocalTime(post.scheduled_at)} ·{' '}
+                              {post.status && post.status !== 'scheduled'
+                                ? 'Posted'
+                                : post.content?.slice(0, 18)}
+                              {(!post.status || post.status === 'scheduled') && '...'}
                             </div>
                           ))}
                           {dayPosts.length > 2 && (
@@ -295,8 +389,8 @@ const Schedule = () => {
             </div>
           </div>
         ) : view === 'queue' ? (
-          <div className="space-y-4">
-            {upcomingPosts.length === 0 ? (
+          <div className="space-y-8">
+            {upcomingPosts.length === 0 && postedQueue.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
                 <div className="w-16 h-16 bg-[#168eea]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <FiCalendar className="text-[#168eea]" size={28} />
@@ -314,47 +408,35 @@ const Schedule = () => {
                 </button>
               </div>
             ) : (
-              upcomingPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-xl border border-gray-100 p-5 flex items-start gap-4"
-                >
-                  <div className="flex-shrink-0 text-center">
-                    <div className="text-xs text-gray-400 uppercase">
-                      {new Date(post.scheduled_at).toLocaleDateString('en-US', { month: 'short' })}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {new Date(post.scheduled_at).getDate()}
-                    </div>
-                    <div className="text-xs text-gray-500 flex items-center gap-1 justify-center mt-1">
-                      <FiClock size={10} />
-                      {toLocalTime(post.scheduled_at)}
-                    </div>
+              <>
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900">Upcoming</h3>
+                    <span className="text-xs text-gray-400">{upcomingPosts.length}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 line-clamp-2">{post.content}</p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {(post.platforms || []).map((p) => (
-                        <span
-                          key={p}
-                          className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-0.5 rounded-full text-gray-600"
-                        >
-                          {getPlatformIcon(p, 12)}
-                          {PLATFORM_DISPLAY_NAMES[p]}
-                        </span>
-                      ))}
+                  {upcomingPosts.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-400 text-center">
+                      Nothing queued — new schedules will appear here
                     </div>
+                  ) : (
+                    upcomingPosts.map((post) => renderQueueCard(post, { showDelete: true }))
+                  )}
+                </section>
+
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900">Posted</h3>
+                    <span className="text-xs text-gray-400">{postedQueue.length}</span>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))
+                  {postedQueue.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-400 text-center">
+                      After a schedule goes live, it will show here as Posted
+                    </div>
+                  ) : (
+                    postedQueue.map((post) => renderQueueCard(post))
+                  )}
+                </section>
+              </>
             )}
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -15,7 +15,14 @@ import {
   FiLayers,
 } from 'react-icons/fi';
 import { PLATFORM_IDS, getPlatformIcon } from '../constants/platforms';
-import { platforms } from '../services/api';
+import { auth, platforms } from '../services/api';
+
+const BADGE_POLL_MS = 30000;
+
+const formatBadge = (count) => {
+  if (!count || count <= 0) return null;
+  return count > 99 ? '99+' : String(count);
+};
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -24,6 +31,7 @@ const Layout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [platformConnections, setPlatformConnections] = useState({});
   const [profileImageUrl, setProfileImageUrl] = useState(user?.avatar_url || null);
+  const [badges, setBadges] = useState({ unread_messages: 0, pending_comments: 0 });
 
   const handleLogout = () => {
     logout();
@@ -31,6 +39,18 @@ const Layout = ({ children }) => {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  const loadBadges = useCallback(async () => {
+    try {
+      const response = await auth.getBadges();
+      setBadges({
+        unread_messages: response.data?.unread_messages || 0,
+        pending_comments: response.data?.pending_comments || 0,
+      });
+    } catch {
+      // Non-blocking for layout rendering.
+    }
+  }, []);
 
   useEffect(() => {
     const loadConnections = async () => {
@@ -51,14 +71,35 @@ const Layout = ({ children }) => {
     loadConnections();
   }, []);
 
+  useEffect(() => {
+    loadBadges();
+    const interval = setInterval(loadBadges, BADGE_POLL_MS);
+    const onRefresh = () => loadBadges();
+    window.addEventListener('badges:refresh', onRefresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('badges:refresh', onRefresh);
+    };
+  }, [loadBadges, location.pathname]);
+
   const navItems = [
     { path: '/dashboard', icon: FiGrid, label: 'Publishing' },
     { path: '/create', icon: FiLayers, label: 'Create' },
     { path: '/schedule', icon: FiCalendar, label: 'Schedule' },
     { path: '/posts', icon: FiBookOpen, label: 'Posts' },
     { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
-    { path: '/messages', icon: FiMessageCircle, label: 'Messages' },
-    { path: '/comments', icon: FiMessageSquare, label: 'Comments' },
+    {
+      path: '/messages',
+      icon: FiMessageCircle,
+      label: 'Messages',
+      badge: badges.unread_messages,
+    },
+    {
+      path: '/comments',
+      icon: FiMessageSquare,
+      label: 'Comments',
+      badge: badges.pending_comments,
+    },
     { path: '/settings', icon: FiSettings, label: 'Settings' },
   ];
 
@@ -106,19 +147,36 @@ const Layout = ({ children }) => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
+              const badgeLabel = formatBadge(item.badge);
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                  className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                     active
                       ? 'bg-[#168eea]/10 text-[#168eea] font-medium'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   } ${isCollapsed ? 'justify-center' : ''}`}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <Icon size={18} />
-                  {!isCollapsed && <span>{item.label}</span>}
+                  <span className="relative inline-flex">
+                    <Icon size={18} />
+                    {isCollapsed && badgeLabel && (
+                      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#e41e3f] text-white text-[9px] font-bold leading-4 text-center">
+                        {badgeLabel}
+                      </span>
+                    )}
+                  </span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1">{item.label}</span>
+                      {badgeLabel && (
+                        <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#e41e3f] text-white text-[10px] font-bold leading-[18px] text-center">
+                          {badgeLabel}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </Link>
               );
             })}

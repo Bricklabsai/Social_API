@@ -74,6 +74,7 @@ export const auth = {
   register: (data) => api.post('/users/register', data),
   login: (data) => api.post('/users/login', data),
   me: () => api.get('/users/me'),
+  getBadges: () => api.get('/users/me/badges'),
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
@@ -286,6 +287,13 @@ export const messages = {
   },
   getPlatforms: () => api.get('/messages/platforms'),
   getMessageDetail: (platform, messageId) => api.get(`/messages/${platform}/${messageId}`),
+  markRead: ({ conversationId, peerKey, platform, peerId } = {}) =>
+    api.post('/messages/mark-read', {
+      conversation_id: conversationId || null,
+      peer_key: peerKey || null,
+      platform: platform || null,
+      peer_id: peerId || null,
+    }),
   replyToMessage: (platform, message, recipientId = null) => {
     return api.post(`/messages/${platform}/reply`, {
       message: message,
