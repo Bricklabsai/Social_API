@@ -349,6 +349,40 @@ const WhatsAppPreview = ({ content, mediaUrl, mediaType, userName }) => (
   </div>
 );
 
+const TikTokPreview = ({ content, mediaUrl, mediaType, userName, profileImageUrl }) => (
+  <div className="bg-black rounded-xl overflow-hidden shadow-sm max-w-[280px] mx-auto">
+    <div className="relative aspect-[9/16] bg-gray-900">
+      {mediaUrl ? (
+        mediaType === 'video' ? (
+          <video src={mediaUrl} className="w-full h-full object-cover" />
+        ) : (
+          <img src={mediaUrl} alt="TikTok" className="w-full h-full object-cover" />
+        )
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-2">
+          <FaPlay size={28} className="text-white/60" />
+          <span className="text-xs">Add a video</span>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+        <div className="flex items-center gap-2 mb-2">
+          <Avatar name={userName} imageUrl={profileImageUrl} size="sm" />
+          <span className="text-sm font-semibold">@{userName?.replace(/\s+/g, '').toLowerCase() || 'you'}</span>
+        </div>
+        {content && (
+          <p className="text-sm whitespace-pre-wrap break-words line-clamp-3">{content}</p>
+        )}
+      </div>
+      <div className="absolute right-2 bottom-20 flex flex-col gap-4 text-white items-center text-xs">
+        <FaHeart size={22} />
+        <FaComment size={22} />
+        <FaShare size={20} />
+      </div>
+    </div>
+  </div>
+);
+
 const previewComponents = {
   facebook: FacebookPreview,
   instagram: InstagramPreview,
@@ -356,6 +390,7 @@ const previewComponents = {
   linkedin: LinkedInPreview,
   youtube: YouTubePreview,
   whatsapp: WhatsAppPreview,
+  tiktok: TikTokPreview,
 };
 
 const PlatformPreview = ({

@@ -103,7 +103,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleConnect = async (platform) => {
+  const handleConnect = async (platform, options = {}) => {
     setActionInProgress(platform);
     try {
       const userStr = localStorage.getItem('user');
@@ -116,7 +116,8 @@ const Dashboard = () => {
           /* use default */
         }
       }
-      window.location.href = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}`;
+      const publishQuery = platform === 'tiktok' && options.publish ? '&publish=true' : '';
+      window.location.href = `${API_BASE_URL}/auth/${platform}/connect?user_id=${userId}${publishQuery}`;
     } catch (error) {
       console.error('Connection error:', error);
       toast.error(`Failed to connect ${PLATFORM_DISPLAY_NAMES[platform] || platform}`);
@@ -304,34 +305,45 @@ const Dashboard = () => {
                           {displayName}
                         </p>
                         {isConnected ? (
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="flex items-center gap-1 text-emerald-600 text-xs">
-                              <FaCheckCircle size={10} />
-                              Connected
-                            </span>
-                            {(connection?.account_count || 0) > 1 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                                {connection.account_count} accounts
+                          <div className="flex flex-col gap-1 mt-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="flex items-center gap-1 text-emerald-600 text-xs">
+                                <FaCheckCircle size={10} />
+                                Connected
                               </span>
-                            )}
-                            <button
-                              onClick={() => handleConnect(platform)}
-                              disabled={isInProgress}
-                              className="text-xs text-[#168eea] hover:text-[#1378d4] transition-colors disabled:opacity-50"
-                            >
-                              Add account
-                            </button>
-                            <button
-                              onClick={() => handleDisconnect(platform)}
-                              disabled={isInProgress}
-                              className="text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                            >
-                              {isInProgress ? (
-                                <FaSpinner className="animate-spin inline" size={10} />
-                              ) : (
-                                'Disconnect'
+                              {(connection?.account_count || 0) > 1 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                  {connection.account_count} accounts
+                                </span>
                               )}
-                            </button>
+                              <button
+                                onClick={() => handleConnect(platform)}
+                                disabled={isInProgress}
+                                className="text-xs text-[#168eea] hover:text-[#1378d4] transition-colors disabled:opacity-50"
+                              >
+                                Add account
+                              </button>
+                              <button
+                                onClick={() => handleDisconnect(platform)}
+                                disabled={isInProgress}
+                                className="text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                              >
+                                {isInProgress ? (
+                                  <FaSpinner className="animate-spin inline" size={10} />
+                                ) : (
+                                  'Disconnect'
+                                )}
+                              </button>
+                            </div>
+                            {platform === 'tiktok' && (
+                              <button
+                                onClick={() => handleConnect(platform, { publish: true })}
+                                disabled={isInProgress}
+                                className="text-left text-xs text-[#168eea] hover:text-[#1378d4] transition-colors disabled:opacity-50"
+                              >
+                                Enable video posting
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <button

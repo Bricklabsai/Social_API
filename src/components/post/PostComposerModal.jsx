@@ -25,7 +25,17 @@ import {
   PLATFORM_DISPLAY_NAMES,
   PLATFORM_CHAR_LIMITS,
   getPlatformIcon,
+  COMING_SOON_PLATFORMS,
 } from '../../constants/platforms';
+
+const RECURRENCE_OPTIONS = [
+  { value: 'once', label: 'One time only' },
+  { value: 'weekly:1', label: 'Every Monday', rule: { frequency: 'weekly', day_of_week: 1 } },
+  { value: 'weekly:5', label: 'Every Friday', rule: { frequency: 'weekly', day_of_week: 5 } },
+  { value: 'weekly:0', label: 'Every Sunday', rule: { frequency: 'weekly', day_of_week: 0 } },
+  { value: 'monthly:3', label: '3rd of every month', rule: { frequency: 'monthly_day', day_of_month: 3 } },
+  { value: 'monthly:1', label: '1st of every month', rule: { frequency: 'monthly_day', day_of_month: 1 } },
+];
 
 const PostComposerModal = ({
   isOpen,
@@ -47,6 +57,7 @@ const PostComposerModal = ({
   const [scheduleMode, setScheduleMode] = useState(defaultScheduleMode);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [recurrence, setRecurrence] = useState('once');
   const [showAI, setShowAI] = useState(false);
   const [threadModeEnabled, setThreadModeEnabled] = useState(false);
   const [pollEnabled, setPollEnabled] = useState(false);
@@ -73,7 +84,7 @@ const PostComposerModal = ({
 
 
   const connectedPlatforms = PLATFORM_IDS.filter(
-    (p) => platformConnections[p]?.connected
+    (p) => platformConnections[p]?.connected && !COMING_SOON_PLATFORMS.has(p)
   );
 
   const connectedTargets = React.useMemo(() => {
@@ -312,6 +323,12 @@ const PostComposerModal = ({
 
       setPublishing(true);
       try {
+        const recurrenceOption = RECURRENCE_OPTIONS.find((o) => o.value === recurrence);
+        const recurrenceRule =
+          recurrenceOption?.rule
+            ? { ...recurrenceOption.rule, label: recurrenceOption.label }
+            : null;
+
         if (selectedFile) {
           const formData = new FormData();
           formData.append('platforms', JSON.stringify(selectedPlatforms));
@@ -320,6 +337,9 @@ const PostComposerModal = ({
           formData.append('media_type', mediaType);
           formData.append('file', selectedFile);
           formData.append('scheduled_at', scheduledAt);
+          if (recurrenceRule) {
+            formData.append('recurrence_rule', JSON.stringify(recurrenceRule));
+          }
           await posts.scheduleWithMedia(formData);
         } else {
           await posts.schedule({
@@ -327,9 +347,14 @@ const PostComposerModal = ({
             content,
             scheduled_at: scheduledAt,
             platform_accounts: getPlatformAccountsMap(),
+            recurrence_rule: recurrenceRule,
           });
         }
-        toast.success(`Post scheduled for ${scheduledDate} at ${scheduledTime}`);
+        toast.success(
+          recurrenceRule
+            ? `Scheduled — ${recurrenceOption.label}`
+            : `Post scheduled for ${scheduledDate} at ${scheduledTime}`
+        );
         resetForm();
         onPublishSuccess?.();
         onClose();
@@ -379,7 +404,12 @@ const PostComposerModal = ({
 
       const { successful, total_platforms } = response.data;
       if (successful === total_platforms) {
-        toast.success(`Published to ${total_platforms} channel${total_platforms > 1 ? 's' : ''}!`);
+        const tiktokProcessing = response.data?.results?.tiktok?.processing;
+        toast.success(
+          tiktokProcessing
+            ? 'Video sent to TikTok — it may take a minute to finish processing'
+            : `Published to ${total_platforms} channel${total_platforms > 1 ? 's' : ''}!`
+        );
         resetForm();
         onPublishSuccess?.();
         onClose();
@@ -387,7 +417,17 @@ const PostComposerModal = ({
         toast.warning(`Partially published: ${successful}/${total_platforms}`);
         onPublishSuccess?.();
       } else {
-        toast.error('Publishing failed. Check your connections.');
+        const resultErrors = Object.entries(response.data?.results || {})
+          .filter(([, result]) => result && result.success === false)
+          .map(([platform, result]) => {
+            const name = PLATFORM_DISPLAY_NAMES[platform] || platform;
+            return `${name}: ${result.error || 'failed'}`;
+          });
+        toast.error(
+          resultErrors.length > 0
+            ? resultErrors.join(' · ')
+            : 'Publishing failed. Check your connections.'
+        );
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to publish');
@@ -782,7 +822,7 @@ const PostComposerModal = ({
             </div>
 
             {scheduleMode === 'later' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   type="date"
                   value={scheduledDate}
@@ -796,6 +836,15 @@ const PostComposerModal = ({
                   onChange={(e) => setScheduledTime(e.target.value)}
                   className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
                 />
+                <select
+                  value={recurrence}
+                  onChange={(e) => setRecurrence(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                >
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
                 <FiClock className="text-gray-400" size={16} />
               </div>
             )}
