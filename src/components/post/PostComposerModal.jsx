@@ -38,7 +38,7 @@ const PostComposerModal = ({
   const fileInputRef = useRef(null);
 
   const [content, setContent] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
+  const [selectedTargets, setSelectedTargets] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState(null);
   const [mediaType, setMediaType] = useState(null);
@@ -55,6 +55,10 @@ const PostComposerModal = ({
 
   const userName = user?.full_name || user?.email?.split('@')[0] || 'Your Account';
   const getPlatformProfile = (platform) => {
+    const selected = selectedTargets.find((t) => t.platform === platform);
+    if (selected) {
+      return { name: selected.name, imageUrl: selected.avatar_url || null };
+    }
     const connection = platformConnections?.[platform] || {};
     const username = connection.username || connection.platform_user_name;
     const fallback = PLATFORM_DISPLAY_NAMES[platform] || userName;
@@ -72,9 +76,47 @@ const PostComposerModal = ({
     (p) => platformConnections[p]?.connected
   );
 
+  const connectedTargets = React.useMemo(() => {
+    const targets = [];
+    connectedPlatforms.forEach((platform) => {
+      const connection = platformConnections?.[platform] || {};
+      const accounts = connection.accounts?.length
+        ? connection.accounts
+        : connection.connected
+          ? [{
+              token_id: null,
+              platform_user_name: connection.platform_user_name || connection.username,
+              avatar_url: connection.profile_image_url,
+            }]
+          : [];
+
+      accounts.forEach((account) => {
+        targets.push({
+          platform,
+          token_id: account.token_id,
+          name: account.platform_user_name || PLATFORM_DISPLAY_NAMES[platform],
+          avatar_url: account.avatar_url || connection.profile_image_url,
+        });
+      });
+    });
+    return targets;
+  }, [platformConnections, connectedPlatforms]);
+
+  const selectedPlatforms = [...new Set(selectedTargets.map((t) => t.platform))];
+
+  const getPlatformAccountsMap = () =>
+    Object.fromEntries(
+      selectedTargets
+        .filter((t) => t.token_id)
+        .map((t) => [t.platform, t.token_id])
+    );
+
+  const getSelectedTokenId = (platform) =>
+    selectedTargets.find((t) => t.platform === platform)?.token_id || null;
+
   const resetForm = useCallback(() => {
     setContent('');
-    setSelectedPlatforms([]);
+    setSelectedTargets([]);
     setSelectedFile(null);
     if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
     setMediaPreviewUrl(null);
@@ -91,11 +133,11 @@ const PostComposerModal = ({
   }, [mediaPreviewUrl]);
 
   useEffect(() => {
-    if (isOpen && connectedPlatforms.length > 0 && selectedPlatforms.length === 0) {
-      setSelectedPlatforms([connectedPlatforms[0]]);
-      setActivePreviewPlatform(connectedPlatforms[0]);
+    if (isOpen && connectedTargets.length > 0 && selectedTargets.length === 0) {
+      setSelectedTargets([connectedTargets[0]]);
+      setActivePreviewPlatform(connectedTargets[0].platform);
     }
-  }, [isOpen, connectedPlatforms.length]);
+  }, [isOpen, connectedTargets.length]);
 
   useEffect(() => {
     if (selectedPlatforms.length > 0) {
@@ -135,12 +177,18 @@ const PostComposerModal = ({
     onClose();
   };
 
-  const togglePlatform = (platform) => {
-    setSelectedPlatforms((prev) => {
-      const next = prev.includes(platform)
-        ? prev.filter((p) => p !== platform)
-        : [...prev, platform];
-      return next;
+  const toggleTarget = (target) => {
+    setSelectedTargets((prev) => {
+      const exists = prev.some(
+        (t) => t.platform === target.platform && t.token_id === target.token_id
+      );
+      if (exists) {
+        return prev.filter(
+          (t) => !(t.platform === target.platform && t.token_id === target.token_id)
+        );
+      }
+      const withoutSamePlatform = prev.filter((t) => t.platform !== target.platform);
+      return [...withoutSamePlatform, target];
     });
     setSelectedFile(null);
     if (mediaPreviewUrl) {
@@ -189,8 +237,9 @@ const PostComposerModal = ({
 
   const isThreadMode =
     threadModeEnabled &&
-    selectedPlatforms.includes('twitter') &&
-    selectedPlatforms.length === 1;
+    selectedPlatforms.length === 1 &&
+    PLATFORM_CONFIG[selectedPlatforms[0]]?.supportsThread;
+  const threadPlatform = isThreadMode ? selectedPlatforms[0] : null;
   const canUseTwitterPoll = selectedPlatforms.length === 1 && selectedPlatforms[0] === 'twitter';
 
   const hasInstagram = selectedPlatforms.includes('instagram');
@@ -266,6 +315,7 @@ const PostComposerModal = ({
         if (selectedFile) {
           const formData = new FormData();
           formData.append('platforms', JSON.stringify(selectedPlatforms));
+          formData.append('platform_accounts', JSON.stringify(getPlatformAccountsMap()));
           formData.append('content', content);
           formData.append('media_type', mediaType);
           formData.append('file', selectedFile);
@@ -276,6 +326,7 @@ const PostComposerModal = ({
             platforms: selectedPlatforms,
             content,
             scheduled_at: scheduledAt,
+            platform_accounts: getPlatformAccountsMap(),
           });
         }
         toast.success(`Post scheduled for ${scheduledDate} at ${scheduledTime}`);
@@ -304,19 +355,24 @@ const PostComposerModal = ({
       } else if (withMedia && selectedFile) {
         const formData = new FormData();
         formData.append('platforms', JSON.stringify(selectedPlatforms));
+        formData.append('platform_accounts', JSON.stringify(getPlatformAccountsMap()));
         formData.append('content', content);
         formData.append('media_type', mediaType);
         formData.append('file', selectedFile);
         response = await posts.publishWithMedia(formData);
       } else {
         const threadLines = content.split('\n').map((line) => line.trim()).filter(Boolean);
-        if (isThreadMode && selectedPlatforms.length === 1 && selectedPlatforms[0] === 'twitter' && threadLines.length > 1) {
-          await posts.postThread(threadLines);
+        if (isThreadMode && threadPlatform === 'twitter' && threadLines.length > 1) {
+          await posts.postThread(threadLines, getSelectedTokenId('twitter'));
+          response = { data: { successful: 1, total_platforms: 1 } };
+        } else if (isThreadMode && threadPlatform === 'threads' && threadLines.length > 1) {
+          await posts.postThreadsThread(threadLines, getSelectedTokenId('threads'));
           response = { data: { successful: 1, total_platforms: 1 } };
         } else {
           response = await posts.publish({
             platforms: selectedPlatforms,
             content,
+            platform_accounts: getPlatformAccountsMap(),
           });
         }
       }
@@ -387,27 +443,31 @@ const PostComposerModal = ({
                 Channels
               </label>
               <div className="flex flex-wrap gap-2">
-                {connectedPlatforms.map((platform) => {
-                  const isSelected = selectedPlatforms.includes(platform);
-                  const config = PLATFORM_CONFIG[platform];
-                  const accountCount = platformConnections?.[platform]?.account_count || 1;
+                {connectedTargets.map((target) => {
+                  const isSelected = selectedTargets.some(
+                    (t) => t.platform === target.platform && t.token_id === target.token_id
+                  );
+                  const config = PLATFORM_CONFIG[target.platform];
                   return (
                     <button
-                      key={platform}
-                      onClick={() => togglePlatform(platform)}
+                      key={`${target.platform}-${target.token_id || target.name}`}
+                      onClick={() => toggleTarget(target)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
                         isSelected
                           ? `${config.bg} ${config.color} ${config.border} ring-2 ${config.ring}`
                           : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                       }`}
                     >
-                      {getPlatformIcon(platform, 16)}
-                      {PLATFORM_DISPLAY_NAMES[platform]}
-                      {accountCount > 1 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/70 text-gray-600">
-                          {accountCount}
-                        </span>
+                      {target.avatar_url ? (
+                        <img
+                          src={target.avatar_url}
+                          alt={target.name}
+                          className="w-5 h-5 rounded-md object-cover"
+                        />
+                      ) : (
+                        getPlatformIcon(target.platform, 16)
                       )}
+                      <span className="truncate max-w-[120px]">{target.name}</span>
                     </button>
                   );
                 })}
@@ -422,20 +482,20 @@ const PostComposerModal = ({
 
             {/* Content Editor */}
             <div className="flex-1 px-6 py-4 overflow-y-auto">
-              {selectedPlatforms.includes('twitter') && selectedPlatforms.length === 1 && (
+              {selectedPlatforms.length === 1 && PLATFORM_CONFIG[selectedPlatforms[0]]?.supportsThread && (
                 <div className="mb-3 flex items-center gap-3">
                   <button
                     onClick={() => setThreadModeEnabled((prev) => !prev)}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                       threadModeEnabled
-                        ? 'bg-[#1DA1F2]/10 text-[#1DA1F2] border-[#1DA1F2]/30'
+                        ? 'bg-black/10 text-black border-black/30'
                         : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     {threadModeEnabled ? 'Thread mode on' : 'Thread mode off'}
                   </button>
                   <p className="text-xs text-gray-400">
-                    Multi-line text stays as one tweet unless thread mode is enabled.
+                    Turn on thread mode to split each line into a separate post. Off keeps everything as one post.
                   </p>
                 </div>
               )}
@@ -501,9 +561,9 @@ const PostComposerModal = ({
               />
 
               {isThreadMode && (
-                <p className="text-xs text-[#1DA1F2] mt-2 flex items-center gap-1">
+                <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
                   <FaInfoCircle size={12} />
-                  Thread mode: each line becomes a separate tweet
+                  Thread mode: each line becomes a separate {PLATFORM_DISPLAY_NAMES[threadPlatform]} post
                 </p>
               )}
 

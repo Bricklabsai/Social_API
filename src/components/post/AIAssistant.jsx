@@ -114,7 +114,7 @@ const AIAssistant = ({ content, onApply, onClose }) => {
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900">AI Assistant</p>
-            <p className="text-[10px] text-gray-400">Powered by SocialHub AI</p>
+            <p className="text-[10px] text-gray-400">Powered by OpenAI</p>
           </div>
         </div>
         <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">

@@ -164,7 +164,6 @@ export const platforms = {
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
-  
   uploadFile: (formData) => api.post('/publish/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -226,7 +225,10 @@ export const posts = {
     });
   },
   getThreads: (limit = 10) => api.get(`/publish/threads?limit=${limit}`),
-  postThread: (tweets) => api.post('/publish/thread', { tweets }),
+  postThread: (tweets, tokenId = null) =>
+    api.post('/publish/thread', { tweets, token_id: tokenId }),
+  postThreadsThread: (posts, tokenId = null) =>
+    api.post('/publish/threads/thread', { posts, token_id: tokenId }),
   publishTwitterPoll: (data) => api.post('/publish/twitter/poll', data),
   getStatus: (taskId) => api.get(`/publish/status/${taskId}`),
   schedule: (data) => api.post('/publish/schedule', data),
@@ -237,6 +239,13 @@ export const posts = {
     }),
   getScheduled: () => api.get('/publish/scheduled'),
   cancelScheduled: (postId) => api.delete(`/publish/scheduled/${postId}`),
+};
+
+export const recurring = {
+  list: () => api.get('/recurring/'),
+  create: (data) => api.post('/recurring/', data),
+  update: (id, data) => api.put(`/recurring/${id}`, data),
+  delete: (id) => api.delete(`/recurring/${id}`),
 };
 // ============================================
 // ANALYTICS API

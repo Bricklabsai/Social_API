@@ -289,7 +289,7 @@ const Dashboard = () => {
                           <img
                             src={connection.profile_image_url}
                             alt={connection?.username || displayName}
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-10 h-10 rounded-md object-cover"
                           />
                         ) : (
                           getPlatformIcon(platform, 22)
@@ -304,7 +304,7 @@ const Dashboard = () => {
                           {displayName}
                         </p>
                         {isConnected ? (
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="flex items-center gap-1 text-emerald-600 text-xs">
                               <FaCheckCircle size={10} />
                               Connected
@@ -314,6 +314,13 @@ const Dashboard = () => {
                                 {connection.account_count} accounts
                               </span>
                             )}
+                            <button
+                              onClick={() => handleConnect(platform)}
+                              disabled={isInProgress}
+                              className="text-xs text-[#168eea] hover:text-[#1378d4] transition-colors disabled:opacity-50"
+                            >
+                              Add account
+                            </button>
                             <button
                               onClick={() => handleDisconnect(platform)}
                               disabled={isInProgress}

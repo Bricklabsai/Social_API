@@ -38,14 +38,14 @@ const Avatar = ({ name, imageUrl, size = 'md' }) => {
       <img
         src={imageUrl}
         alt={name || 'Profile'}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
+        className={`${sizeClass} rounded-md object-cover flex-shrink-0`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeClass} rounded-full bg-gradient-to-br from-[#168eea] to-[#0d6efd] flex items-center justify-center text-white font-semibold flex-shrink-0`}
+      className={`${sizeClass} rounded-md bg-gradient-to-br from-[#168eea] to-[#0d6efd] flex items-center justify-center text-white font-semibold flex-shrink-0`}
     >
       {initials}
     </div>

@@ -9,7 +9,7 @@ import {
 } from 'react-icons/fi';
 import { getPlatformIcon, PLATFORM_DISPLAY_NAMES } from '../constants/platforms';
 import PostComposerModal from '../components/post/PostComposerModal';
-import { platforms, posts } from '../services/api';
+import { platforms, posts, recurring } from '../services/api';
 import toast from 'react-hot-toast';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -43,6 +43,15 @@ const Schedule = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
+  const [recurringSchedules, setRecurringSchedules] = useState([]);
+  const [recurringForm, setRecurringForm] = useState({
+    name: '',
+    content: '',
+    platforms: [],
+    days_of_week: [],
+    time_utc: '09:00',
+  });
+  const [savingRecurring, setSavingRecurring] = useState(false);
 
   const fetchScheduledPosts = useCallback(async () => {
     try {
@@ -57,10 +66,20 @@ const Schedule = () => {
     }
   }, []);
 
+  const fetchRecurringSchedules = useCallback(async () => {
+    try {
+      const response = await recurring.list();
+      setRecurringSchedules(response.data?.schedules || []);
+    } catch (error) {
+      console.error('Failed to fetch recurring schedules:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchScheduledPosts();
     fetchConnections();
-  }, [fetchScheduledPosts]);
+    fetchRecurringSchedules();
+  }, [fetchScheduledPosts, fetchRecurringSchedules]);
 
   const fetchConnections = async () => {
     try {
@@ -107,6 +126,63 @@ const Schedule = () => {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const today = new Date();
 
+  const connectedPlatforms = Object.keys(platformConnections).filter(
+    (p) => platformConnections[p]?.connected
+  );
+
+  const toggleRecurringDay = (day) => {
+    setRecurringForm((prev) => ({
+      ...prev,
+      days_of_week: prev.days_of_week.includes(day)
+        ? prev.days_of_week.filter((d) => d !== day)
+        : [...prev.days_of_week, day],
+    }));
+  };
+
+  const handleCreateRecurring = async () => {
+    if (!recurringForm.content.trim()) {
+      toast.error('Enter post content');
+      return;
+    }
+    if (recurringForm.platforms.length === 0) {
+      toast.error('Select at least one platform');
+      return;
+    }
+    if (recurringForm.days_of_week.length === 0) {
+      toast.error('Select at least one day');
+      return;
+    }
+
+    setSavingRecurring(true);
+    try {
+      await recurring.create(recurringForm);
+      toast.success('Recurring schedule saved');
+      setRecurringForm({
+        name: '',
+        content: '',
+        platforms: [],
+        days_of_week: [],
+        time_utc: '09:00',
+      });
+      await fetchRecurringSchedules();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to save recurring schedule');
+    } finally {
+      setSavingRecurring(false);
+    }
+  };
+
+  const handleDeleteRecurring = async (id) => {
+    if (!window.confirm('Delete this recurring schedule?')) return;
+    try {
+      await recurring.delete(id);
+      toast.success('Recurring schedule deleted');
+      await fetchRecurringSchedules();
+    } catch (error) {
+      toast.error('Failed to delete recurring schedule');
+    }
+  };
+
   const upcomingPosts = [...scheduledPosts]
     .filter((p) => new Date(p.scheduled_at) >= new Date())
     .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
@@ -131,7 +207,7 @@ const Schedule = () => {
         </div>
 
         <div className="flex gap-1 bg-white rounded-lg border border-gray-100 p-1 mb-6 w-fit">
-          {['calendar', 'queue'].map((v) => (
+          {['calendar', 'queue', 'recurring'].map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -218,7 +294,7 @@ const Schedule = () => {
               })}
             </div>
           </div>
-        ) : (
+        ) : view === 'queue' ? (
           <div className="space-y-4">
             {upcomingPosts.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
@@ -280,6 +356,117 @@ const Schedule = () => {
                 </div>
               ))
             )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Create weekly recurring post</h3>
+              <input
+                value={recurringForm.name}
+                onChange={(e) => setRecurringForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Schedule name (optional)"
+                className="w-full mb-3 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <textarea
+                value={recurringForm.content}
+                onChange={(e) => setRecurringForm((prev) => ({ ...prev, content: e.target.value }))}
+                placeholder="What should be posted on the selected days?"
+                rows={4}
+                className="w-full mb-3 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              />
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Platforms</p>
+                <div className="flex flex-wrap gap-2">
+                  {connectedPlatforms.map((platform) => {
+                    const selected = recurringForm.platforms.includes(platform);
+                    return (
+                      <button
+                        key={platform}
+                        onClick={() =>
+                          setRecurringForm((prev) => ({
+                            ...prev,
+                            platforms: selected
+                              ? prev.platforms.filter((p) => p !== platform)
+                              : [...prev.platforms, platform],
+                          }))
+                        }
+                        className={`px-3 py-1.5 rounded-full text-xs border ${
+                          selected
+                            ? 'bg-[#168eea]/10 text-[#168eea] border-[#168eea]/30'
+                            : 'bg-gray-50 text-gray-500 border-gray-200'
+                        }`}
+                      >
+                        {PLATFORM_DISPLAY_NAMES[platform]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Days (UTC)</p>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.map((day, index) => (
+                    <button
+                      key={day}
+                      onClick={() => toggleRecurringDay(index)}
+                      className={`px-3 py-1.5 rounded-md text-xs border ${
+                        recurringForm.days_of_week.includes(index)
+                          ? 'bg-[#168eea] text-white border-[#168eea]'
+                          : 'bg-gray-50 text-gray-500 border-gray-200'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <label className="text-xs text-gray-500">Time (UTC)</label>
+                <input
+                  type="time"
+                  value={recurringForm.time_utc}
+                  onChange={(e) => setRecurringForm((prev) => ({ ...prev, time_utc: e.target.value }))}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <button
+                onClick={handleCreateRecurring}
+                disabled={savingRecurring}
+                className="px-4 py-2 bg-[#168eea] text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {savingRecurring ? 'Saving...' : 'Save recurring schedule'}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {recurringSchedules.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400 text-sm">
+                  No recurring schedules yet
+                </div>
+              ) : (
+                recurringSchedules.map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">
+                          {item.name || 'Recurring post'}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.content}</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {item.days_of_week.map((d) => DAYS[d]).join(', ')} at {item.time_utc} UTC
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteRecurring(item.id)}
+                        className="p-2 text-gray-400 hover:text-red-500"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>
