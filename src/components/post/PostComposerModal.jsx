@@ -574,13 +574,15 @@ const PostComposerModal = ({
                       {target.avatar_url ? (
                         <img
                           src={target.avatar_url}
-                          alt={target.name}
+                          alt={PLATFORM_DISPLAY_NAMES[target.platform] || target.platform}
                           className="w-5 h-5 rounded-md object-cover"
                         />
                       ) : (
                         getPlatformIcon(target.platform, 16)
                       )}
-                      <span className="truncate max-w-[120px]">{target.name}</span>
+                      <span className="truncate max-w-[120px]">
+                        {PLATFORM_DISPLAY_NAMES[target.platform] || target.platform}
+                      </span>
                     </button>
                   );
                 })}

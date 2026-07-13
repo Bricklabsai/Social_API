@@ -165,6 +165,11 @@ export const platforms = {
 // ============================================
 export const posts = {
   publish: (data) => api.post('/publish/', data),
+  uploadMediaOnly: (formData) =>
+    api.post('/publish/media/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
+    }),
   uploadFile: (formData) => api.post('/publish/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
