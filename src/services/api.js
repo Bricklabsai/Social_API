@@ -2,7 +2,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 // Use environment variable or fallback to Render URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://unified-social-api.onrender.com/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://socialbackend.bricklabsai.com/api/v1';
 
 // Create axios instance
 const api = axios.create({
