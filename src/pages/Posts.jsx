@@ -4,8 +4,9 @@ import { posts } from '../services/api';
 import {
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp, FaTiktok,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaTrash,
-  FaChartLine, FaGlobe, FaTrashAlt, FaImage, FaVideo, FaFileAlt
+  FaChartLine, FaTrashAlt, FaImage, FaVideo, FaFileAlt
 } from 'react-icons/fa';
+import { BsThreads } from 'react-icons/bs';
 import { FiBookOpen } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -31,7 +32,7 @@ const platformConfig = {
   twitter: { icon: FaTwitter, name: 'X', color: 'text-sky-500', bg: 'bg-sky-50' },
   tiktok: { icon: FaTiktok, name: 'TikTok', color: 'text-gray-900', bg: 'bg-gray-100' },
   whatsapp: { icon: FaWhatsapp, name: 'WhatsApp', color: 'text-green-600', bg: 'bg-green-50' },
-  threads: { icon: FaGlobe, name: 'Threads', color: 'text-gray-800', bg: 'bg-gray-100' },
+  threads: { icon: BsThreads, name: 'Threads', color: 'text-gray-900', bg: 'bg-gray-100' },
 };
 
 const detectPlatforms = (post) => {

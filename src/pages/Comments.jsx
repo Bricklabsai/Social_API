@@ -4,6 +4,7 @@ import {
   FaFacebook, FaYoutube, FaInstagram, FaTwitter, FaLinkedin,
   FaReply, FaHeart, FaUser, FaClock, FaSpinner, FaHashtag, FaCheckDouble
 } from 'react-icons/fa';
+import { BsThreads } from 'react-icons/bs';
 import { FiSend, FiRefreshCw, FiMessageSquare, FiUsers, FiZap } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -178,6 +179,7 @@ const Comments = () => {
     twitter: <FaTwitter className="text-sky-500" size={18} />,
     linkedin: <FaLinkedin className="text-blue-700" size={18} />,
     youtube: <FaYoutube className="text-red-600" size={18} />,
+    threads: <BsThreads className="text-black" size={18} />,
   };
 
   const platformColors = {
@@ -186,6 +188,7 @@ const Comments = () => {
     twitter: 'border-sky-200 bg-sky-50 hover:border-sky-300',
     linkedin: 'border-blue-200 bg-blue-50 hover:border-blue-300',
     youtube: 'border-red-200 bg-red-50 hover:border-red-300',
+    threads: 'border-gray-300 bg-gray-50 hover:border-gray-400',
   };
 
   const platformBadgeColors = {
@@ -194,6 +197,7 @@ const Comments = () => {
     twitter: 'bg-sky-100 text-sky-700',
     linkedin: 'bg-blue-100 text-blue-700',
     youtube: 'bg-red-100 text-red-700',
+    threads: 'bg-gray-200 text-gray-800',
   };
 
   const platformStats = useMemo(
