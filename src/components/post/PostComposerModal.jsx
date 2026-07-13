@@ -17,7 +17,6 @@ import {
 import { FaSpinner, FaInfoCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { posts, templates } from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 import PlatformPreview from './PlatformPreview';
 import AIAssistant from './AIAssistant';
 import MentionTextarea from '../MentionTextarea';
@@ -46,7 +45,6 @@ const PostComposerModal = ({
   onPublishSuccess,
   defaultScheduleMode = 'now',
 }) => {
-  const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [content, setContent] = useState('');
@@ -71,18 +69,15 @@ const PostComposerModal = ({
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollDurationMinutes, setPollDurationMinutes] = useState(1440);
 
-  const userName = user?.full_name || user?.email?.split('@')[0] || 'Your Account';
   const getPlatformProfile = (platform) => {
     const selected = selectedTargets.find((t) => t.platform === platform);
-    if (selected) {
-      return { name: selected.name, imageUrl: selected.avatar_url || null };
-    }
     const connection = platformConnections?.[platform] || {};
-    const username = connection.username || connection.platform_user_name;
-    const fallback = PLATFORM_DISPLAY_NAMES[platform] || userName;
+    const platformLabel = PLATFORM_DISPLAY_NAMES[platform] || platform;
     return {
-      name: username || fallback,
+      // Show platform brand name in modal/preview — not the account username
+      name: platformLabel,
       imageUrl:
+        selected?.avatar_url ||
         connection.profile_image_url ||
         connection.accounts?.[0]?.avatar_url ||
         null,
@@ -560,29 +555,30 @@ const PostComposerModal = ({
                   const isSelected = selectedTargets.some(
                     (t) => t.platform === target.platform && t.token_id === target.token_id
                   );
-                  const config = PLATFORM_CONFIG[target.platform];
+                  const config = PLATFORM_CONFIG[target.platform] || {};
+                  const platformLabel =
+                    PLATFORM_DISPLAY_NAMES[target.platform] || target.platform;
                   return (
                     <button
-                      key={`${target.platform}-${target.token_id || target.name}`}
+                      key={`${target.platform}-${target.token_id || 'default'}`}
                       onClick={() => toggleTarget(target)}
+                      title={platformLabel}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
                         isSelected
-                          ? `${config.bg} ${config.color} ${config.border} ring-2 ${config.ring}`
+                          ? `${config.bg || 'bg-gray-100'} ${config.color || 'text-gray-800'} ${config.border || 'border-gray-300'} ring-2 ${config.ring || 'ring-gray-300'}`
                           : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                       }`}
                     >
                       {target.avatar_url ? (
                         <img
                           src={target.avatar_url}
-                          alt={PLATFORM_DISPLAY_NAMES[target.platform] || target.platform}
-                          className="w-5 h-5 rounded-md object-cover"
+                          alt=""
+                          className="w-5 h-5 rounded-md object-cover flex-shrink-0"
                         />
                       ) : (
-                        getPlatformIcon(target.platform, 16)
+                        <span className="flex-shrink-0">{getPlatformIcon(target.platform, 16)}</span>
                       )}
-                      <span className="truncate max-w-[120px]">
-                        {PLATFORM_DISPLAY_NAMES[target.platform] || target.platform}
-                      </span>
+                      <span className="truncate max-w-[140px]">{platformLabel}</span>
                     </button>
                   );
                 })}
