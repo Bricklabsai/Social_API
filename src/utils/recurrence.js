@@ -1,4 +1,4 @@
-"""Utilities for expanding and describing flexible recurring schedules."""
+/** Utilities for expanding and describing flexible recurring schedules. */
 
 export const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const DAYS_LONG = [
