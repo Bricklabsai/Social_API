@@ -24,7 +24,7 @@ export const PLATFORM_IDS = [
   'bluesky',
 ];
 
-export const COMING_SOON_PLATFORMS = new Set(['bluesky', 'linkedin_pages']);
+export const COMING_SOON_PLATFORMS = new Set(['linkedin_pages']);
 
 export const PLATFORM_DISPLAY_NAMES = {
   facebook: 'Facebook',
@@ -165,7 +165,6 @@ export const PLATFORM_CONFIG = {
     supportsImage: true,
     supportsVideo: false,
     requiresMedia: false,
-    comingSoon: true,
   },
 };
 

@@ -2,6 +2,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { platforms } from '../services/api';
 import PostComposerModal from '../components/post/PostComposerModal';
+import BlueskyConnectModal from '../components/BlueskyConnectModal';
 import {
   FaCheckCircle,
   FaSpinner,
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 import {
   PLATFORM_IDS,
   PLATFORM_DISPLAY_NAMES,
+  COMING_SOON_PLATFORMS,
   getPlatformIcon,
 } from '../constants/platforms';
 import { getScheduledPosts } from '../utils/scheduledPosts';
@@ -36,6 +38,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
+  const [showBlueskyModal, setShowBlueskyModal] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
 
   const capitalizeFirstLetter = (string) => {
@@ -104,6 +107,16 @@ const Dashboard = () => {
   };
 
   const handleConnect = async (platform, options = {}) => {
+    if (COMING_SOON_PLATFORMS.has(platform)) {
+      toast(`${PLATFORM_DISPLAY_NAMES[platform] || platform} is coming soon`);
+      return;
+    }
+
+    if (platform === 'bluesky') {
+      setShowBlueskyModal(true);
+      return;
+    }
+
     setActionInProgress(platform);
     try {
       const userStr = localStorage.getItem('user');
@@ -387,6 +400,8 @@ const Dashboard = () => {
                               </button>
                             )}
                           </div>
+                        ) : COMING_SOON_PLATFORMS.has(platform) ? (
+                          <span className="mt-0.5 text-xs text-gray-400">Coming soon</span>
                         ) : (
                           <button
                             onClick={() => handleConnect(platform)}
@@ -417,7 +432,7 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Connect your channels</h3>
             <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
               Link your social accounts above to start creating and scheduling posts with live
-              previews ΓÇö just like Buffer.
+              previews — just like Buffer.
             </p>
           </div>
         )}
@@ -428,6 +443,12 @@ const Dashboard = () => {
         onClose={() => setShowComposer(false)}
         platformConnections={platformConnections}
         onPublishSuccess={fetchConnections}
+      />
+
+      <BlueskyConnectModal
+        isOpen={showBlueskyModal}
+        onClose={() => setShowBlueskyModal(false)}
+        onSuccess={fetchConnections}
       />
     </div>
   );

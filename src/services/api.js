@@ -154,6 +154,24 @@ export const platforms = {
       throw error;
     }
   },
+
+  /** Bluesky uses AT Proto app passwords (no browser OAuth redirect). */
+  connectBluesky: (identifier, appPassword) => {
+    let userId = null;
+    const userStr = localStorage.getItem('user');
+    if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+      try {
+        userId = JSON.parse(userStr)?.id || null;
+      } catch {
+        /* ignore */
+      }
+    }
+    return api.post('/auth/bluesky/connect', {
+      identifier,
+      app_password: appPassword,
+      ...(userId ? { user_id: userId } : {}),
+    });
+  },
   
   disconnect: (platform, tokenId = null) =>
     api.delete(`/auth/${platform}/tokens${tokenId ? `?token_id=${tokenId}` : ''}`),
