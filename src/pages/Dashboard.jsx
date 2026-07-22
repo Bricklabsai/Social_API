@@ -56,15 +56,26 @@ const Dashboard = () => {
     const platform = params.get('platform');
     const status = params.get('status');
     const message = params.get('message');
+    const connect = params.get('connect');
+
+    if (platform === 'bluesky' && (connect === '1' || connect === 'true')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setShowBlueskyModal(true);
+      return;
+    }
 
     if (platform && status) {
       window.history.replaceState({}, '', window.location.pathname);
       if (status === 'success') {
-        toast.success(`Successfully connected to ${capitalizeFirstLetter(platform)}!`);
+        toast.success(
+          `Successfully connected to ${PLATFORM_DISPLAY_NAMES[platform] || capitalizeFirstLetter(platform)}!`
+        );
         fetchConnections();
       } else {
         const errorMsg = message ? decodeURIComponent(message) : 'Unknown error';
-        toast.error(`Failed to connect ${capitalizeFirstLetter(platform)}: ${errorMsg}`);
+        toast.error(
+          `Failed to connect ${PLATFORM_DISPLAY_NAMES[platform] || capitalizeFirstLetter(platform)}: ${errorMsg}`
+        );
       }
     }
 

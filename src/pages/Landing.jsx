@@ -9,6 +9,7 @@ import {
   FiArrowRight,
   FiLayers,
   FiClock,
+  FiFilm,
 } from 'react-icons/fi';
 import PublicNavbar from '../components/marketing/PublicNavbar';
 import PublicFooter from '../components/marketing/PublicFooter';
@@ -29,6 +30,11 @@ const features = [
     icon: FiZap,
     title: 'AI writing assistant',
     desc: 'Get caption ideas, hashtag suggestions, and tone improvements powered by AI.',
+  },
+  {
+    icon: FiFilm,
+    title: 'Studio repurposing',
+    desc: 'Upload a podcast or long video — AI creates Reels, Shorts, TikTok clips, and LinkedIn posts.',
   },
   {
     icon: FiBarChart2,

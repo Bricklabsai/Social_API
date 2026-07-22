@@ -112,6 +112,12 @@ export const platforms = {
   
   connect: (platform) => {
     try {
+      if (platform === 'bluesky') {
+        toast('Use the Bluesky connect form on the dashboard');
+        window.location.href = '/dashboard?platform=bluesky&connect=1';
+        return;
+      }
+
       let userId = 1;
       const userStr = localStorage.getItem('user');
       if (userStr && userStr !== 'undefined' && userStr !== 'null') {
@@ -352,6 +358,23 @@ export const mentions = {
 // ============================================
 export const assistant = {
   generate: (data) => api.post('/assistant/generate', data),
+};
+
+// ============================================
+// STUDIO API — AI content repurposing
+// ============================================
+export const studio = {
+  listJobs: (limit = 20) => api.get(`/studio/jobs?limit=${limit}`),
+  getJob: (id) => api.get(`/studio/jobs/${id}`),
+  deleteJob: (id) => api.delete(`/studio/jobs/${id}`),
+  createJob: (formData) =>
+    api.post('/studio/jobs', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+    }),
+  sendToBoard: (jobId, data = {}) =>
+    api.post(`/studio/jobs/${jobId}/send-to-board`, data),
+  getPlatforms: () => api.get('/studio/platforms'),
 };
 
 // ============================================

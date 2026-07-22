@@ -13,6 +13,7 @@ import {
   FiMessageCircle,
   FiCalendar,
   FiLayers,
+  FiFilm,
 } from 'react-icons/fi';
 import { PLATFORM_IDS, getPlatformIcon } from '../constants/platforms';
 import { auth, platforms } from '../services/api';
@@ -84,6 +85,7 @@ const Layout = ({ children }) => {
 
   const navItems = [
     { path: '/dashboard', icon: FiGrid, label: 'Publishing' },
+    { path: '/studio', icon: FiFilm, label: 'Studio' },
     { path: '/create', icon: FiLayers, label: 'Create' },
     { path: '/schedule', icon: FiCalendar, label: 'Schedule' },
     { path: '/posts', icon: FiBookOpen, label: 'Posts' },

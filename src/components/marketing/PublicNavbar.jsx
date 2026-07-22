@@ -28,6 +28,9 @@ const PublicNavbar = () => {
           <button onClick={() => scrollTo('pricing')} className="hover:text-gray-900 transition-colors">
             Pricing
           </button>
+          <Link to="/developers" className="hover:text-gray-900 transition-colors">
+            Developers
+          </Link>
           <Link to="/login" className="hover:text-gray-900 transition-colors">
             Log in
           </Link>

@@ -12,6 +12,7 @@ const PublicFooter = () => (
           <span className="font-semibold text-gray-900">SocialHub</span>
         </div>
         <div className="flex items-center gap-6 text-sm text-gray-500">
+          <Link to="/developers" className="hover:text-gray-700">Developers</Link>
           <Link to="/privacy" className="hover:text-gray-700">Privacy</Link>
           <Link to="/terms" className="hover:text-gray-700">Terms</Link>
           <Link to="/login" className="hover:text-gray-700">Log in</Link>

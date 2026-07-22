@@ -18,6 +18,8 @@ import Create from './pages/Create';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AdminBilling from './pages/AdminBilling';
+import Developers from './pages/Developers';
+import Studio from './pages/Studio';
 import OAuthCallback from './pages/OAuthCallback';
 import './App.css';
 
@@ -33,6 +35,7 @@ function App() {
           <Route path="/admin/billing" element={<AdminBilling />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/developers" element={<Developers />} />
           <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route
             path="/dashboard"
@@ -95,6 +98,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/studio"
+            element={
+              <ProtectedRoute>
+                <Studio />
               </ProtectedRoute>
             }
           />

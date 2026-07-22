@@ -388,6 +388,7 @@ const previewComponents = {
   instagram: InstagramPreview,
   twitter: TwitterPreview,
   linkedin: LinkedInPreview,
+  linkedin_pages: LinkedInPreview,
   youtube: YouTubePreview,
   whatsapp: WhatsAppPreview,
   tiktok: TikTokPreview,
