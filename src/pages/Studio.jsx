@@ -50,8 +50,9 @@ export default function Studio() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [activePlatform, setActivePlatform] = useState(PLATFORM_IDS[0]);
   const [sendingBoard, setSendingBoard] = useState(false);
-
   const [apiUnavailable, setApiUnavailable] = useState(false);
+  const [manualTranscript, setManualTranscript] = useState('');
+  const [submittingTranscript, setSubmittingTranscript] = useState(false);
 
   const loadJobs = useCallback(async () => {
     try {
@@ -170,9 +171,41 @@ export default function Studio() {
     }
   };
 
+  const handleSubmitTranscript = async () => {
+    const text = manualTranscript.trim();
+    if (text.length < 20) {
+      toast.error('Paste a longer transcript (at least a few sentences)');
+      return;
+    }
+    setSubmittingTranscript(true);
+    try {
+      let res;
+      if (activeJob?.id && activeJob.status === 'failed') {
+        res = await studioApi.fromTranscript(activeJob.id, { transcript: text });
+      } else {
+        res = await studioApi.createFromTranscript({
+          transcript: text,
+          title: title || 'Transcript project',
+          context,
+        });
+      }
+      setActiveJob(res.data?.job);
+      setManualTranscript('');
+      toast.success('Repurposing started from your transcript');
+      loadJobs();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to start from transcript');
+    } finally {
+      setSubmittingTranscript(false);
+    }
+  };
+
   const platformOutputs = activeJob?.platform_outputs?.[activePlatform] || [];
   const clips = activeJob?.clips || [];
   const isProcessing = activeJob && ['queued', 'transcribing', 'analyzing'].includes(activeJob.status);
+  const isQuotaFailure =
+    activeJob?.status === 'failed' &&
+    /quota|billing|whisper/i.test(activeJob?.error_message || '');
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -262,6 +295,32 @@ export default function Studio() {
                 </>
               )}
             </button>
+
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Or paste transcript
+              </p>
+              <textarea
+                placeholder="Paste podcast / interview transcript here to skip Whisper transcription…"
+                value={manualTranscript}
+                onChange={(e) => setManualTranscript(e.target.value)}
+                rows={4}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm resize-none"
+              />
+              <button
+                onClick={handleSubmitTranscript}
+                disabled={submittingTranscript || manualTranscript.trim().length < 20}
+                className="mt-2 w-full flex items-center justify-center gap-2 border border-gray-200 hover:border-[#168eea]/40 hover:bg-[#168eea]/5 disabled:opacity-50 text-gray-700 font-medium rounded-xl py-2.5 text-sm transition-colors"
+              >
+                {submittingTranscript ? (
+                  <>
+                    <FaSpinner className="animate-spin" /> Starting…
+                  </>
+                ) : (
+                  'Repurpose from transcript'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Past projects */}
@@ -348,9 +407,31 @@ export default function Studio() {
                 )}
 
                 {activeJob.status === 'failed' && (
-                  <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm flex gap-2">
-                    <FiAlertCircle className="flex-shrink-0 mt-0.5" />
-                    {activeJob.error_message || 'Processing failed'}
+                  <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm space-y-3">
+                    <div className="flex gap-2">
+                      <FiAlertCircle className="flex-shrink-0 mt-0.5" />
+                      <span>{activeJob.error_message || 'Processing failed'}</span>
+                    </div>
+                    {isQuotaFailure && (
+                      <div className="text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs leading-relaxed">
+                        <strong>Quick workaround:</strong> paste the transcript in the left panel
+                        and click “Repurpose from transcript” — that skips Whisper and still uses
+                        your chat model for clips/captions.
+                        <br />
+                        <br />
+                        <strong>To fix billing:</strong> open{' '}
+                        <a
+                          href="https://platform.openai.com/settings/organization/billing"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline"
+                        >
+                          OpenAI Billing
+                        </a>{' '}
+                        for the <em>exact project</em> that owns the <code>OPENAI_API_KEY</code> in
+                        your backend env (org $100 limit ≠ every project/key has quota).
+                      </div>
+                    )}
                   </div>
                 )}
 

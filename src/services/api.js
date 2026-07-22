@@ -377,6 +377,9 @@ export const studio = {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 300000,
     }),
+  fromTranscript: (jobId, data) =>
+    api.post(`/studio/jobs/${jobId}/from-transcript`, data),
+  createFromTranscript: (data) => api.post('/studio/jobs/from-transcript', data),
   sendToBoard: (jobId, data = {}) =>
     api.post(`/studio/jobs/${jobId}/send-to-board`, data),
   getPlatforms: () => api.get('/studio/platforms', { skipErrorToast: true }),
