@@ -29,6 +29,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.config?.skipErrorToast) {
+      return Promise.reject(error);
+    }
+
     if (!error.response) {
       toast.error('Network error. Please check your connection.');
       return Promise.reject(error);
@@ -364,8 +368,9 @@ export const assistant = {
 // STUDIO API — AI content repurposing
 // ============================================
 export const studio = {
-  listJobs: (limit = 20) => api.get(`/studio/jobs?limit=${limit}`),
-  getJob: (id) => api.get(`/studio/jobs/${id}`),
+  listJobs: (limit = 20) =>
+    api.get(`/studio/jobs?limit=${limit}`, { skipErrorToast: true }),
+  getJob: (id) => api.get(`/studio/jobs/${id}`, { skipErrorToast: true }),
   deleteJob: (id) => api.delete(`/studio/jobs/${id}`),
   createJob: (formData) =>
     api.post('/studio/jobs', formData, {
@@ -374,7 +379,7 @@ export const studio = {
     }),
   sendToBoard: (jobId, data = {}) =>
     api.post(`/studio/jobs/${jobId}/send-to-board`, data),
-  getPlatforms: () => api.get('/studio/platforms'),
+  getPlatforms: () => api.get('/studio/platforms', { skipErrorToast: true }),
 };
 
 // ============================================

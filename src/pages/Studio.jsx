@@ -51,12 +51,18 @@ export default function Studio() {
   const [activePlatform, setActivePlatform] = useState(PLATFORM_IDS[0]);
   const [sendingBoard, setSendingBoard] = useState(false);
 
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+
   const loadJobs = useCallback(async () => {
     try {
       const res = await studioApi.listJobs();
       setJobs(res.data?.jobs || []);
+      setApiUnavailable(false);
     } catch (e) {
       console.error(e);
+      if (e.response?.status === 404) {
+        setApiUnavailable(true);
+      }
     } finally {
       setLoadingJobs(false);
     }
@@ -184,6 +190,14 @@ export default function Studio() {
           </p>
         </div>
       </div>
+
+      {apiUnavailable && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Studio API is not available on the backend yet (<code className="text-xs">/api/v1/studio</code>).
+          Redeploy <strong>Unified-Social-API</strong> (Render and/or BrickDeploy) with the latest
+          commit that includes Studio routes, then refresh this page.
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Upload panel */}
