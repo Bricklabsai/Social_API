@@ -19,6 +19,9 @@ const AdminBilling = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [activeTab, setActiveTab] = useState('dashboard');
   const [error, setError] = useState(null);
+  const [updatingPlanId, setUpdatingPlanId] = useState(null);
+
+  const PLAN_OPTIONS = ['free', 'pro', 'business', 'enterprise'];
 
   useEffect(() => {
     fetchData();
@@ -84,6 +87,43 @@ const AdminBilling = () => {
     toast.success('Data refreshed');
   };
 
+  const handlePlanChange = async (userId, nextPlan) => {
+    const previous = users.find((u) => u.id === userId)?.plan;
+    if (!nextPlan || nextPlan === previous) return;
+
+    setUpdatingPlanId(userId);
+    // Optimistic UI update
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, plan: nextPlan } : u))
+    );
+
+    try {
+      const res = await api.patch(`/admin/users/${userId}/plan`, { plan: nextPlan });
+      const updated = res.data?.user;
+      if (updated) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, plan: updated.plan } : u))
+        );
+      }
+      toast.success(res.data?.message || `Plan set to ${nextPlan}`);
+
+      // Refresh dashboard counts without full-page loading state
+      try {
+        const dashRes = await api.get('/admin/dashboard');
+        setDashboard(dashRes.data);
+      } catch {
+        /* ignore */
+      }
+    } catch (err) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, plan: previous } : u))
+      );
+      toast.error(err.response?.data?.detail || 'Failed to update plan');
+    } finally {
+      setUpdatingPlanId(null);
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -108,6 +148,7 @@ const AdminBilling = () => {
     const plans = {
       free: { label: 'Free', color: 'bg-gray-100 text-gray-600' },
       pro: { label: 'Pro', color: 'bg-blue-100 text-blue-600' },
+      business: { label: 'Business', color: 'bg-emerald-100 text-emerald-700' },
       enterprise: { label: 'Enterprise', color: 'bg-purple-100 text-purple-700' }
     };
     return plans[plan] || plans.free;
@@ -267,7 +308,7 @@ const AdminBilling = () => {
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-sm font-medium text-gray-700 mb-4">Users by Plan</h3>
               <div className="space-y-3">
-                {['free', 'pro', 'enterprise'].map((plan) => (
+                {PLAN_OPTIONS.map((plan) => (
                   <div key={plan} className="flex items-center justify-between">
                     <span className="capitalize text-gray-600">{plan}</span>
                     <div className="flex items-center gap-4">
@@ -278,7 +319,8 @@ const AdminBilling = () => {
                         <div 
                           className={`h-2 rounded-full ${
                             plan === 'free' ? 'bg-gray-400' :
-                            plan === 'pro' ? 'bg-blue-500' : 'bg-purple-500'
+                            plan === 'pro' ? 'bg-blue-500' :
+                            plan === 'business' ? 'bg-emerald-500' : 'bg-purple-500'
                           }`}
                           style={{ 
                             width: `${((dashboard.users_by_plan?.[plan] || 0) / Math.max(dashboard.total_users, 1)) * 100}%` 
@@ -296,6 +338,10 @@ const AdminBilling = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Pro Plans</span>
                   <span className="text-sm font-medium text-gray-800">${dashboard.revenue?.pro || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Business Plans</span>
+                  <span className="text-sm font-medium text-gray-800">${dashboard.revenue?.business || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Enterprise Plans</span>
@@ -359,9 +405,24 @@ const AdminBilling = () => {
                             <div className="text-xs text-gray-400">{user.email}</div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${planBadge.color}`}>
-                              {planBadge.label}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={user.plan || 'free'}
+                                disabled={updatingPlanId === user.id}
+                                onChange={(e) => handlePlanChange(user.id, e.target.value)}
+                                className={`px-2 py-1.5 rounded-lg text-xs font-medium border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:opacity-50 ${planBadge.color}`}
+                                title="Change user plan"
+                              >
+                                {PLAN_OPTIONS.map((plan) => (
+                                  <option key={plan} value={plan}>
+                                    {plan.charAt(0).toUpperCase() + plan.slice(1)}
+                                  </option>
+                                ))}
+                              </select>
+                              {updatingPlanId === user.id && (
+                                <FiRefreshCw className="animate-spin text-indigo-500" size={14} />
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-center">{user.api_keys_count}</td>
                           <td className="px-4 py-3 text-center font-medium">{user.total_requests?.toLocaleString()}</td>
