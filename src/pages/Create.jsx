@@ -7,6 +7,7 @@ import {
   FiEdit2,
   FiX,
   FiLayers,
+  FiChevronDown,
 } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -228,7 +229,8 @@ const Create = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
+      {/* Title row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             <FiLayers className="text-[#168eea]" size={24} />
@@ -238,14 +240,45 @@ const Create = () => {
             Plan content, drag cards between columns, and generate ideas with AI
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {canUseAi ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetchIdeas();
+            }}
+            className="inline-flex items-center justify-center w-10 h-10 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50 hover:border-[#168eea]/30 transition-colors"
+            title="Refresh"
+          >
+            <FiRefreshCw size={16} />
+          </button>
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium whitespace-nowrap shadow-sm shadow-[#168eea]/20 transition-colors"
+          >
+            <FiPlus size={16} />
+            New idea
+          </button>
+        </div>
+      </div>
+
+      {/* AI controls — separate row so nothing crowds the primary CTA */}
+      {canUseAi ? (
+        <div className="mb-6 rounded-xl border border-[#168eea]/15 bg-gradient-to-r from-[#168eea]/5 to-white p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FiZap className="text-[#168eea]" size={16} />
+            <span className="text-sm font-semibold text-gray-800">AI idea generator</span>
+            <span className="text-xs text-gray-400">Pick a period, niche, and topic</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <label className="block">
+              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+                Period
+              </span>
+              <div className="relative">
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                  className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
                   title="Content planning period"
                 >
                   {PERIOD_OPTIONS.map((opt) => (
@@ -254,10 +287,21 @@ const Create = () => {
                     </option>
                   ))}
                 </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
+                  <FiChevronDown size={16} />
+                </span>
+              </div>
+            </label>
+
+            <label className="block">
+              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+                Content type
+              </span>
+              <div className="relative">
                 <select
                   value={contentType}
                   onChange={(e) => setContentType(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                  className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
                   title="Content niche / type"
                 >
                   {CONTENT_TYPE_OPTIONS.map((opt) => (
@@ -266,45 +310,40 @@ const Create = () => {
                     </option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Topic for AI ideas..."
-                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 min-w-[180px]"
-                />
-                <button
-                  onClick={handleGenerateIdeas}
-                  disabled={generating}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:border-[#168eea]/40 hover:text-[#168eea] rounded-lg text-sm font-medium disabled:opacity-50"
-                >
-                  {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
-                  Generate ideas
-                </button>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
+                  <FiChevronDown size={16} />
+                </span>
               </div>
-            </div>
-          ) : (
-            <UpgradeGate feature="AI idea generation" compact />
-          )}
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium"
-          >
-            <FiPlus size={16} />
-            New idea
-          </button>
-          <button
-            onClick={() => {
-              setLoading(true);
-              fetchIdeas();
-            }}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50"
-            title="Refresh"
-          >
-            <FiRefreshCw size={16} />
-          </button>
+            </label>
+
+            <label className="block sm:col-span-2 lg:col-span-1">
+              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+                Topic
+              </span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g. growing a SaaS on LinkedIn"
+                className="w-full px-3 py-2.5 text-sm text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm placeholder:text-gray-400 hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors"
+              />
+            </label>
+
+            <button
+              onClick={handleGenerateIdeas}
+              disabled={generating}
+              className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium disabled:opacity-50 shadow-sm shadow-[#168eea]/20 transition-colors"
+            >
+              {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
+              Generate ideas
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6">
+          <UpgradeGate feature="AI idea generation" compact />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         {COLUMNS.map((column) => (
