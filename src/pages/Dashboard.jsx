@@ -19,7 +19,7 @@ import {
 import { getScheduledPosts } from '../utils/scheduledPosts';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'https://unified-social-api.onrender.com/api/v1';
+  import.meta.env.VITE_API_URL || 'https://socialbackend.bricklabsai.com/api/v1';
 
 const PlatformCardSkeleton = () => (
   <div className="bg-white rounded-xl p-4 border border-gray-100 animate-pulse flex items-center gap-3">
