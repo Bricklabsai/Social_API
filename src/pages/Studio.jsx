@@ -9,6 +9,8 @@ import {
   FiClock,
   FiCheckCircle,
   FiAlertCircle,
+  FiSend,
+  FiCalendar,
 } from 'react-icons/fi';
 import { FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -18,6 +20,9 @@ import {
   PLATFORM_IDS,
   getPlatformIcon,
 } from '../constants/platforms';
+import { useAuth } from '../context/AuthContext';
+import { isPremiumPlan } from '../utils/plan';
+import UpgradeGate from '../components/UpgradeGate';
 
 const POLL_MS = 4000;
 
@@ -36,8 +41,23 @@ const statusLabel = {
   failed: 'Failed',
 };
 
+const buildDraftFromOutput = (out, platform, mediaUrl) => {
+  const tags = (out.hashtags || [])
+    .map((t) => `#${String(t).replace(/^#/, '')}`)
+    .join(' ');
+  const content = [out.caption, tags].filter(Boolean).join('\n\n');
+  return {
+    content,
+    platforms: [platform],
+    mediaUrl: mediaUrl || null,
+    mediaType: mediaUrl ? 'video' : null,
+  };
+};
+
 export default function Studio() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canUseStudio = isPremiumPlan(user?.plan);
   const fileInputRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -53,8 +73,13 @@ export default function Studio() {
   const [apiUnavailable, setApiUnavailable] = useState(false);
   const [manualTranscript, setManualTranscript] = useState('');
   const [submittingTranscript, setSubmittingTranscript] = useState(false);
+  const [mockMode, setMockMode] = useState(false);
 
   const loadJobs = useCallback(async () => {
+    if (!canUseStudio) {
+      setLoadingJobs(false);
+      return;
+    }
     try {
       const res = await studioApi.listJobs();
       setJobs(res.data?.jobs || []);
@@ -63,11 +88,13 @@ export default function Studio() {
       console.error(e);
       if (e.response?.status === 404) {
         setApiUnavailable(true);
+      } else if (e.response?.status === 403) {
+        setJobs([]);
       }
     } finally {
       setLoadingJobs(false);
     }
-  }, []);
+  }, [canUseStudio]);
 
   const loadJob = useCallback(async (id) => {
     const res = await studioApi.getJob(id);
@@ -77,10 +104,25 @@ export default function Studio() {
 
   useEffect(() => {
     loadJobs();
+    if (canUseStudio) {
+      studioApi
+        .getPlatforms()
+        .then((res) => setMockMode(Boolean(res.data?.mock_mode)))
+        .catch(() => {});
+    }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [loadJobs]);
+  }, [loadJobs, canUseStudio]);
+
+  const handoffToComposer = (out, mode) => {
+    const draft = buildDraftFromOutput(out, activePlatform, activeJob?.source_media_url);
+    if (mode === 'schedule') {
+      navigate('/schedule', { state: { compose: true, studioDraft: draft } });
+    } else {
+      navigate('/dashboard', { state: { compose: true, studioDraft: draft } });
+    }
+  };
 
   useEffect(() => {
     if (!activeJob?.id) return;
@@ -223,6 +265,19 @@ export default function Studio() {
           </p>
         </div>
       </div>
+
+      {!canUseStudio ? (
+        <UpgradeGate feature="Studio AI" />
+      ) : (
+        <>
+      {mockMode && (
+        <div className="rounded-xl border border-[#168eea]/25 bg-[#168eea]/5 px-4 py-3 text-sm text-gray-700">
+          <strong className="text-[#168eea]">Simulation mode</strong> — Studio is using mock
+          transcripts and captions (no OpenAI spend). Set{' '}
+          <code className="text-xs bg-white px-1 rounded border">MOCK_STUDIO=false</code> in
+          backend env to go live.
+        </div>
+      )}
 
       {apiUnavailable && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -510,7 +565,10 @@ export default function Studio() {
                       <p className="text-sm text-gray-400">No outputs for this platform</p>
                     ) : (
                       platformOutputs.map((out, i) => (
-                        <div key={i} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                        <div
+                          key={i}
+                          className="group relative p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-[#168eea]/30 transition-colors"
+                        >
                           <p className="text-sm text-gray-800 whitespace-pre-wrap">{out.caption}</p>
                           {out.hashtags?.length > 0 && (
                             <p className="text-xs text-[#168eea] mt-2">
@@ -523,6 +581,26 @@ export default function Studio() {
                               {out.edit_notes}
                             </p>
                           )}
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-white/90 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handoffToComposer(out, 'post')}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#168eea] hover:bg-[#1378d4] text-white text-sm font-medium shadow-sm"
+                              >
+                                <FiSend size={14} />
+                                Post
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handoffToComposer(out, 'schedule')}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:border-[#168eea]/40 text-gray-800 text-sm font-medium shadow-sm"
+                              >
+                                <FiCalendar size={14} />
+                                Schedule
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       ))
                     )}
@@ -533,6 +611,8 @@ export default function Studio() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

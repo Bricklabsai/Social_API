@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -76,11 +77,14 @@ const emptyRecurringForm = () => ({
 });
 
 const Schedule = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [scheduledPosts, setScheduledPosts] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
   const [view, setView] = useState('calendar');
   const [showComposer, setShowComposer] = useState(false);
+  const [composerDraft, setComposerDraft] = useState(null);
   const [platformConnections, setPlatformConnections] = useState({});
   const [loading, setLoading] = useState(true);
   const [recurringSchedules, setRecurringSchedules] = useState([]);
@@ -120,6 +124,14 @@ const Schedule = () => {
     fetchConnections();
     fetchRecurringSchedules();
   }, [fetchScheduledPosts, fetchRecurringSchedules]);
+
+  useEffect(() => {
+    if (location.state?.compose || location.state?.studioDraft) {
+      setComposerDraft(location.state.studioDraft || null);
+      setShowComposer(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -870,11 +882,13 @@ const Schedule = () => {
         isOpen={showComposer}
         onClose={() => {
           setShowComposer(false);
+          setComposerDraft(null);
           fetchScheduledPosts();
         }}
         platformConnections={platformConnections}
         onPublishSuccess={fetchScheduledPosts}
         defaultScheduleMode="later"
+        initialDraft={composerDraft}
       />
     </div>
   );

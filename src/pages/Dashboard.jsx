@@ -40,6 +40,7 @@ const Dashboard = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showBlueskyModal, setShowBlueskyModal] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
+  const [composerDraft, setComposerDraft] = useState(null);
 
   const capitalizeFirstLetter = (string) => {
     if (!string) return '';
@@ -50,6 +51,14 @@ const Dashboard = () => {
     fetchConnections();
     setScheduledCount(getScheduledPosts().length);
   }, []);
+
+  useEffect(() => {
+    if (location.state?.compose || location.state?.studioDraft) {
+      setComposerDraft(location.state.studioDraft || null);
+      setShowComposer(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -451,9 +460,13 @@ const Dashboard = () => {
 
       <PostComposerModal
         isOpen={showComposer}
-        onClose={() => setShowComposer(false)}
+        onClose={() => {
+          setShowComposer(false);
+          setComposerDraft(null);
+        }}
         platformConnections={platformConnections}
         onPublishSuccess={fetchConnections}
+        initialDraft={composerDraft}
       />
 
       <BlueskyConnectModal

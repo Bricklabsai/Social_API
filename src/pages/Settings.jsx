@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import {
   FiUser, FiMail, FiLock, FiKey, FiCopy, FiCheck,
   FiRefreshCw, FiEye, FiEyeOff, FiTrash2, FiShield,
-  FiPlus, FiX
+  FiPlus, FiX, FiZap
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { apiKeys, settings } from '../services/api';
+import { isPremiumPlan, normalizePlan } from '../utils/plan';
 
 const inputClass =
   'w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 focus:border-[#168eea] bg-white text-gray-800 transition-colors';
@@ -174,6 +175,7 @@ const Settings = () => {
 
   const navItems = [
     { id: 'profile', label: 'Profile', icon: FiUser },
+    { id: 'plan', label: 'Plan', icon: FiZap },
     { id: 'security', label: 'Security', icon: FiLock },
     { id: 'api', label: 'API keys', icon: FiKey },
   ];
@@ -258,6 +260,41 @@ const Settings = () => {
                   {saving ? <FiRefreshCw className="animate-spin inline" /> : 'Save changes'}
                 </button>
               </form>
+            </div>
+          )}
+
+          {activeSection === 'plan' && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">Your plan</h2>
+                <p className="text-sm text-gray-500">
+                  Free includes core posting and scheduling. Pro unlocks Studio AI, the writing
+                  assistant, and advanced idea generation.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
+                    isPremiumPlan(user?.plan)
+                      ? 'bg-[#168eea]/10 text-[#168eea]'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {normalizePlan(user?.plan)}
+                </span>
+                <span className="text-sm text-gray-600">
+                  {isPremiumPlan(user?.plan)
+                    ? 'You have access to AI and Studio features.'
+                    : 'Upgrade to Pro to use AI Studio and the writing assistant.'}
+                </span>
+              </div>
+              {!isPremiumPlan(user?.plan) && (
+                <p className="text-sm text-gray-500">
+                  To upgrade, contact support or your admin (plan changes are managed from Admin
+                  Billing). Once your plan is set to <strong>pro</strong> or{' '}
+                  <strong>business</strong>, AI features unlock automatically.
+                </p>
+              )}
             </div>
           )}
 

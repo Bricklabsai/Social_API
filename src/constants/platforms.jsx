@@ -7,6 +7,7 @@ import {
   FaWhatsapp,
   FaTiktok,
   FaCloud,
+  FaGhost,
 } from 'react-icons/fa';
 import { BsThreads } from 'react-icons/bs';
 import { HiOutlineBuildingOffice2 } from 'react-icons/hi2';
@@ -22,9 +23,11 @@ export const PLATFORM_IDS = [
   'tiktok',
   'whatsapp',
   'bluesky',
+  'snapchat',
 ];
 
-export const COMING_SOON_PLATFORMS = new Set([]);
+/** Platforms shown on Dashboard but not yet connectable. */
+export const COMING_SOON_PLATFORMS = new Set(['snapchat']);
 
 export const PLATFORM_DISPLAY_NAMES = {
   facebook: 'Facebook',
@@ -37,6 +40,7 @@ export const PLATFORM_DISPLAY_NAMES = {
   tiktok: 'TikTok',
   whatsapp: 'WhatsApp',
   bluesky: 'Bluesky',
+  snapchat: 'Snapchat',
 };
 
 export const PLATFORM_CHAR_LIMITS = {
@@ -50,6 +54,7 @@ export const PLATFORM_CHAR_LIMITS = {
   tiktok: 2200,
   whatsapp: 4096,
   bluesky: 300,
+  snapchat: 250,
 };
 
 export const PLATFORM_CONFIG = {
@@ -164,6 +169,17 @@ export const PLATFORM_CONFIG = {
     supportsImage: true,
     supportsVideo: false,
     requiresMedia: false,
+  },
+  snapchat: {
+    icon: FaGhost,
+    color: 'text-black',
+    bg: 'bg-[#FFFC00]/40',
+    border: 'border-yellow-300',
+    ring: 'ring-yellow-400',
+    accent: '#FFFC00',
+    supportsImage: true,
+    supportsVideo: true,
+    requiresMedia: true,
   },
 };
 

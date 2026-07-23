@@ -11,6 +11,9 @@ import {
 import { FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { assistant, contentIdeas } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { isPremiumPlan } from '../utils/plan';
+import UpgradeGate from '../components/UpgradeGate';
 
 const COLUMNS = [
   { id: 'planned', label: 'Plan', hint: 'Ideas to explore' },
@@ -19,10 +22,31 @@ const COLUMNS = [
   { id: 'done', label: 'Done', hint: 'Published or finished' },
 ];
 
+const PERIOD_OPTIONS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'annual', label: 'Annually' },
+];
+
+const CONTENT_TYPE_OPTIONS = [
+  { value: 'influencer', label: 'Influencer' },
+  { value: 'entrepreneurship', label: 'Entrepreneurship' },
+  { value: 'lifestyle', label: 'Lifestyle' },
+  { value: 'tech', label: 'Tech / SaaS' },
+  { value: 'education', label: 'Education' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'fitness', label: 'Fitness' },
+  { value: 'personal_brand', label: 'Personal brand' },
+];
+
 const Create = () => {
+  const { user } = useAuth();
+  const canUseAi = isPremiumPlan(user?.plan);
   const [ideas, setIdeas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [topic, setTopic] = useState('');
+  const [period, setPeriod] = useState('weekly');
+  const [contentType, setContentType] = useState('influencer');
   const [generating, setGenerating] = useState(false);
   const [draggedId, setDraggedId] = useState(null);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -88,12 +112,18 @@ const Create = () => {
   };
 
   const handleGenerateIdeas = async () => {
+    if (!canUseAi) {
+      toast.error('AI idea generation is available on Pro plans');
+      return;
+    }
     setGenerating(true);
     try {
       const response = await assistant.generate({
         action: 'ideas',
         content: topic,
         topic: topic || 'social media growth',
+        period,
+        content_type: contentType,
       });
       const suggestions = response.data?.suggestions || [];
       if (!suggestions.length) {
@@ -209,23 +239,53 @@ const Create = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Topic for AI ideas..."
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 min-w-[180px]"
-            />
-            <button
-              onClick={handleGenerateIdeas}
-              disabled={generating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:border-[#168eea]/40 hover:text-[#168eea] rounded-lg text-sm font-medium disabled:opacity-50"
-            >
-              {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
-              Generate ideas
-            </button>
-          </div>
+          {canUseAi ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                  title="Content planning period"
+                >
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#168eea]/30"
+                  title="Content niche / type"
+                >
+                  {CONTENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Topic for AI ideas..."
+                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#168eea]/30 min-w-[180px]"
+                />
+                <button
+                  onClick={handleGenerateIdeas}
+                  disabled={generating}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:border-[#168eea]/40 hover:text-[#168eea] rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
+                  Generate ideas
+                </button>
+              </div>
+            </div>
+          ) : (
+            <UpgradeGate feature="AI idea generation" compact />
+          )}
           <button
             onClick={() => setShowNewModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium"

@@ -28,6 +28,9 @@ import {
   getPlatformIcon,
   COMING_SOON_PLATFORMS,
 } from '../../constants/platforms';
+import { useAuth } from '../../context/AuthContext';
+import { isPremiumPlan } from '../../utils/plan';
+import { useNavigate } from 'react-router-dom';
 
 const RECURRENCE_OPTIONS = [
   { value: 'once', label: 'One time only' },
@@ -44,6 +47,8 @@ const PostComposerModal = ({
   platformConnections,
   onPublishSuccess,
   defaultScheduleMode = 'now',
+  /** Prefill from Studio (or other handoffs): { content, platforms, mediaUrl, mediaType } */
+  initialDraft = null,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -68,6 +73,11 @@ const PostComposerModal = ({
   const [pollEnabled, setPollEnabled] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [pollDurationMinutes, setPollDurationMinutes] = useState(1440);
+  const [remoteMediaUrl, setRemoteMediaUrl] = useState(null);
+  const draftAppliedRef = useRef(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canUseAi = isPremiumPlan(user?.plan);
 
   const getPlatformProfile = (platform) => {
     const selected = selectedTargets.find((t) => t.platform === platform);
@@ -133,9 +143,12 @@ const PostComposerModal = ({
     setTemplateTitle('');
     setSelectedTargets([]);
     setSelectedFile(null);
-    if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+    if (mediaPreviewUrl && mediaPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
     setMediaPreviewUrl(null);
     setMediaType(null);
+    setRemoteMediaUrl(null);
     setScheduleMode(defaultScheduleMode);
     setScheduledDate('');
     setScheduledTime('');
@@ -144,8 +157,9 @@ const PostComposerModal = ({
     setPollEnabled(false);
     setPollOptions(['', '']);
     setPollDurationMinutes(1440);
+    draftAppliedRef.current = false;
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [mediaPreviewUrl]);
+  }, [mediaPreviewUrl, defaultScheduleMode]);
 
   const loadTemplates = useCallback(async () => {
     setLoadingTemplates(true);
@@ -198,11 +212,40 @@ const PostComposerModal = ({
   };
 
   useEffect(() => {
-    if (isOpen && connectedTargets.length > 0 && selectedTargets.length === 0) {
+    if (isOpen && connectedTargets.length > 0 && selectedTargets.length === 0 && !initialDraft?.platforms?.length) {
       setSelectedTargets([connectedTargets[0]]);
       setActivePreviewPlatform(connectedTargets[0].platform);
     }
-  }, [isOpen, connectedTargets.length]);
+  }, [isOpen, connectedTargets.length, initialDraft]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      draftAppliedRef.current = false;
+      return;
+    }
+    if (!initialDraft || draftAppliedRef.current) return;
+    draftAppliedRef.current = true;
+
+    if (initialDraft.content) {
+      setContent(initialDraft.content);
+    }
+    if (initialDraft.mediaUrl) {
+      setRemoteMediaUrl(initialDraft.mediaUrl);
+      setMediaPreviewUrl(initialDraft.mediaUrl);
+      setMediaType(initialDraft.mediaType || 'video');
+    }
+    setScheduleMode(defaultScheduleMode);
+  }, [isOpen, initialDraft, defaultScheduleMode]);
+
+  useEffect(() => {
+    if (!isOpen || !initialDraft?.platforms?.length || connectedTargets.length === 0) return;
+    const wanted = new Set(initialDraft.platforms);
+    const matched = connectedTargets.filter((t) => wanted.has(t.platform));
+    if (matched.length > 0) {
+      setSelectedTargets(matched);
+      setActivePreviewPlatform(matched[0].platform);
+    }
+  }, [isOpen, initialDraft, connectedTargets]);
 
   useEffect(() => {
     if (selectedPlatforms.length > 0) {
@@ -284,9 +327,12 @@ const PostComposerModal = ({
       return;
     }
 
-    if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+    if (mediaPreviewUrl && mediaPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
 
     setSelectedFile(file);
+    setRemoteMediaUrl(null);
     setMediaPreviewUrl(URL.createObjectURL(file));
     setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
     toast.success(`Added: ${file.name}`);
@@ -294,9 +340,12 @@ const PostComposerModal = ({
 
   const removeMedia = () => {
     setSelectedFile(null);
-    if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+    if (mediaPreviewUrl && mediaPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
     setMediaPreviewUrl(null);
     setMediaType(null);
+    setRemoteMediaUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -509,6 +558,11 @@ const PostComposerModal = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
+                if (!canUseAi) {
+                  toast.error('AI Assistant is available on Pro plans');
+                  navigate('/settings');
+                  return;
+                }
                 setShowAI(!showAI);
                 if (!showAI) setShowTemplates(false);
               }}
@@ -517,9 +571,13 @@ const PostComposerModal = ({
                   ? 'bg-[#168eea]/10 text-[#168eea]'
                   : 'text-gray-500 hover:bg-gray-100'
               }`}
+              title={canUseAi ? 'AI Assistant' : 'Upgrade to Pro for AI Assistant'}
             >
               <FiZap size={16} />
               AI Assistant
+              {!canUseAi && (
+                <span className="text-[10px] uppercase tracking-wide text-amber-600">Pro</span>
+              )}
             </button>
             <button
               onClick={openTemplates}
@@ -694,7 +752,14 @@ const PostComposerModal = ({
                   >
                     <FiX size={14} />
                   </button>
-                  <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">{selectedFile?.name}</p>
+                  <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                    {selectedFile?.name || (remoteMediaUrl ? 'Studio source media (preview)' : '')}
+                  </p>
+                  {remoteMediaUrl && !selectedFile && (
+                    <p className="text-xs text-amber-700 mt-1 max-w-xs">
+                      Attach the trimmed clip file before publishing to media-required channels.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -867,7 +932,7 @@ const PostComposerModal = ({
             </div>
           </div>
 
-          {showAI && (
+          {showAI && canUseAi && (
             <AIAssistant
               content={content}
               onApply={(text) => setContent(text)}
