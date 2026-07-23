@@ -261,89 +261,94 @@ const Create = () => {
         </div>
       </div>
 
-      {/* AI controls — separate row so nothing crowds the primary CTA */}
-      {canUseAi ? (
-        <div className="mb-6 rounded-xl border border-[#168eea]/15 bg-gradient-to-r from-[#168eea]/5 to-white p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <FiZap className="text-[#168eea]" size={16} />
-            <span className="text-sm font-semibold text-gray-800">AI idea generator</span>
-            <span className="text-xs text-gray-400">Pick a period, niche, and topic</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-            <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
-                Period
-              </span>
-              <div className="relative">
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
-                  title="Content planning period"
-                >
-                  {PERIOD_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
-                  <FiChevronDown size={16} />
-                </span>
-              </div>
-            </label>
-
-            <label className="block">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
-                Content type
-              </span>
-              <div className="relative">
-                <select
-                  value={contentType}
-                  onChange={(e) => setContentType(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
-                  title="Content niche / type"
-                >
-                  {CONTENT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
-                  <FiChevronDown size={16} />
-                </span>
-              </div>
-            </label>
-
-            <label className="block sm:col-span-2 lg:col-span-1">
-              <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
-                Topic
-              </span>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. growing a SaaS on LinkedIn"
-                className="w-full px-3 py-2.5 text-sm text-gray-800 bg-white border border-[#168eea]/25 rounded-lg shadow-sm placeholder:text-gray-400 hover:border-[#168eea]/50 focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors"
-              />
-            </label>
-
-            <button
-              onClick={handleGenerateIdeas}
-              disabled={generating}
-              className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium disabled:opacity-50 shadow-sm shadow-[#168eea]/20 transition-colors"
-            >
-              {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
-              Generate ideas
-            </button>
-          </div>
+      {/* AI controls — always visible; generate gated for free plans */}
+      <div className="mb-6 rounded-xl border border-[#168eea]/15 bg-gradient-to-r from-[#168eea]/5 to-white p-4">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <FiZap className="text-[#168eea]" size={16} />
+          <span className="text-sm font-semibold text-gray-800">AI idea generator</span>
+          <span className="text-xs text-gray-400">Pick a period, niche, and topic</span>
+          {!canUseAi && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              Pro
+            </span>
+          )}
         </div>
-      ) : (
-        <div className="mb-6">
-          <UpgradeGate feature="AI idea generation" compact />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <label className="block">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+              Period
+            </span>
+            <div className="relative">
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border-2 border-[#168eea]/35 rounded-lg shadow-sm hover:border-[#168eea] focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
+                title="Content planning period"
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
+                <FiChevronDown size={16} />
+              </span>
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+              Content type
+            </span>
+            <div className="relative">
+              <select
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value)}
+                className="w-full appearance-none pl-3 pr-9 py-2.5 text-sm font-medium text-gray-800 bg-white border-2 border-[#168eea]/35 rounded-lg shadow-sm hover:border-[#168eea] focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors cursor-pointer"
+                title="Content niche / type"
+              >
+                {CONTENT_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#168eea]">
+                <FiChevronDown size={16} />
+              </span>
+            </div>
+          </label>
+
+          <label className="block sm:col-span-2 lg:col-span-1">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#168eea] mb-1.5">
+              Topic
+            </span>
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g. growing a SaaS on LinkedIn"
+              className="w-full px-3 py-2.5 text-sm text-gray-800 bg-white border-2 border-[#168eea]/35 rounded-lg shadow-sm placeholder:text-gray-400 hover:border-[#168eea] focus:outline-none focus:ring-2 focus:ring-[#168eea]/25 focus:border-[#168eea] transition-colors"
+            />
+          </label>
+
+          <button
+            onClick={handleGenerateIdeas}
+            disabled={generating || !canUseAi}
+            className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#168eea] hover:bg-[#1378d4] text-white rounded-lg text-sm font-medium disabled:opacity-50 shadow-sm shadow-[#168eea]/20 transition-colors"
+            title={canUseAi ? 'Generate AI ideas' : 'Upgrade to Pro to generate AI ideas'}
+          >
+            {generating ? <FaSpinner className="animate-spin" /> : <FiZap size={16} />}
+            Generate ideas
+          </button>
         </div>
-      )}
+        {!canUseAi && (
+          <div className="mt-3">
+            <UpgradeGate feature="AI idea generation" compact />
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         {COLUMNS.map((column) => (
