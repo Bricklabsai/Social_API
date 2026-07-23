@@ -4,9 +4,10 @@ import { posts } from '../services/api';
 import {
   FaYoutube, FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp, FaTiktok,
   FaCalendar, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaTrash,
-  FaChartLine, FaTrashAlt, FaImage, FaVideo, FaFileAlt
+  FaChartLine, FaTrashAlt, FaImage, FaVideo, FaFileAlt, FaGlobe, FaCloud, FaGhost
 } from 'react-icons/fa';
 import { BsThreads } from 'react-icons/bs';
+import { HiOutlineBuildingOffice2 } from 'react-icons/hi2';
 import { FiBookOpen } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -28,11 +29,14 @@ const platformConfig = {
   facebook: { icon: FaFacebook, name: 'Facebook', color: 'text-blue-600', bg: 'bg-blue-50' },
   instagram: { icon: FaInstagram, name: 'Instagram', color: 'text-pink-600', bg: 'bg-pink-50' },
   linkedin: { icon: FaLinkedin, name: 'LinkedIn', color: 'text-blue-700', bg: 'bg-blue-50' },
+  linkedin_pages: { icon: HiOutlineBuildingOffice2, name: 'LinkedIn Pages', color: 'text-blue-700', bg: 'bg-blue-50' },
   youtube: { icon: FaYoutube, name: 'YouTube', color: 'text-red-600', bg: 'bg-red-50' },
   twitter: { icon: FaTwitter, name: 'X', color: 'text-sky-500', bg: 'bg-sky-50' },
   tiktok: { icon: FaTiktok, name: 'TikTok', color: 'text-gray-900', bg: 'bg-gray-100' },
   whatsapp: { icon: FaWhatsapp, name: 'WhatsApp', color: 'text-green-600', bg: 'bg-green-50' },
   threads: { icon: BsThreads, name: 'Threads', color: 'text-gray-900', bg: 'bg-gray-100' },
+  bluesky: { icon: FaCloud, name: 'Bluesky', color: 'text-sky-500', bg: 'bg-sky-50' },
+  snapchat: { icon: FaGhost, name: 'Snapchat', color: 'text-gray-900', bg: 'bg-yellow-50' },
 };
 
 const detectPlatforms = (post) => {
